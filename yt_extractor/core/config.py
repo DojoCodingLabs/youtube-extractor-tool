@@ -64,13 +64,6 @@ class Config:
         """Cache directory."""
         return os.getenv("CACHE_DIR", "./.cache")
     
-    @property
-    def default_chunk_chars(self) -> int:
-        """Default characters per chunk."""
-        try:
-            return int(os.getenv("DEFAULT_CHUNK_CHARS", "4000"))
-        except ValueError:
-            return 4000
     
     @property
     def max_concurrent_videos(self) -> int:

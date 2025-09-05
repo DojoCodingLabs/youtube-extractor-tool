@@ -4,14 +4,13 @@ from typing import Any, Dict, List
 
 from litellm import completion
 from rich.console import Console
-from rich.progress import track
 
 from ..core.config import config
 from ..core.exceptions import LLMProcessingError
-from ..core.models import ExtractedContent, TranscriptLine, VideoMeta
-from ..utils.chunking import add_timestamps_to_chunk, chunk_transcript
+from ..core.models import TranscriptLine, VideoMeta
+from ..utils.transcript import join_transcript_lines
 from ..utils.cache import cache
-from ..utils.retry import llm_retry, is_api_rate_limit, is_temporary_api_error
+from ..utils.retry import llm_retry
 from .prompts import PromptTemplates
 
 console = Console()
@@ -32,63 +31,40 @@ class LLMProcessor:
         """
         console.print(f"[blue]Processing video: {meta.title}[/blue]")
         
-        # Chunk transcript
-        chunks = chunk_transcript(transcript, config.default_chunk_chars)
-        console.print(f"[dim]Split into {len(chunks)} chunks[/dim]")
+        # Process full transcript at once
+        transcript_text = join_transcript_lines(transcript)
+        console.print(f"[dim]Processing full transcript ({len(transcript_text)} characters)[/dim]")
         
-        # Map phase - extract from each chunk
-        partials = self._map_phase(chunks)
-        
-        # Reduce phase - merge all extractions
-        merged = self._reduce_phase(partials)
+        # Analyze complete transcript
+        analysis = self._analyze_full_transcript(transcript_text)
         
         # Generate final markdown
-        markdown = self._generate_markdown(meta, merged)
+        markdown = self._generate_markdown(meta, analysis)
         
         return markdown
     
-    def _map_phase(self, chunks: List[List[TranscriptLine]]) -> List[Dict[str, Any]]:
-        """Extract content from each transcript chunk."""
-        partials: List[Dict[str, Any]] = []
+    def _analyze_full_transcript(self, transcript_text: str) -> Dict[str, Any]:
+        """Analyze the complete transcript for insights and structure."""
+        console.print("[dim]Analyzing full transcript for insights...[/dim]")
         
-        for chunk in track(chunks, description="Extracting from chunks..."):
-            chunk_text = add_timestamps_to_chunk(chunk)
-            prompt = PromptTemplates.format_map_prompt(chunk_text)
-            
-            result = self._run_llm_json(
-                system_prompt="You extract JSON-only analyses from transcripts.",
-                user_prompt=prompt,
-                temperature=0.1,
-                max_tokens=900
-            )
-            partials.append(result)
+        prompt = PromptTemplates.format_full_analysis_prompt(transcript_text)
         
-        return partials
-    
-    def _reduce_phase(self, partials: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Merge and deduplicate extracted content."""
-        console.print("[dim]Merging and deduplicating content...[/dim]")
-        
-        user_prompt = (
-            PromptTemplates.REDUCE_PROMPT + 
-            "\n\nHere is the JSON array to merge:\n" + 
-            json.dumps(partials, ensure_ascii=False)
-        )
-        
-        merged = self._run_llm_json(
-            system_prompt="You merge JSON partials into a clean, deduplicated result.",
-            user_prompt=user_prompt,
-            temperature=0.1,
-            max_tokens=1200
+        analysis = self._run_llm_json(
+            system_prompt="You are an expert content analyst extracting valuable insights from complete video transcripts.",
+            user_prompt=prompt,
+            temperature=0.3,
+            max_tokens=2500
         )
         
         # Ensure required keys exist
-        merged.setdefault("bullets", [])
-        merged.setdefault("frameworks", [])
+        analysis.setdefault("summary", "")
+        analysis.setdefault("key_insights", [])
+        analysis.setdefault("frameworks", [])
+        analysis.setdefault("timestamps", [])
         
-        return merged
+        return analysis
     
-    def _generate_markdown(self, meta: VideoMeta, merged: Dict[str, Any]) -> str:
+    def _generate_markdown(self, meta: VideoMeta, analysis: Dict[str, Any]) -> str:
         """Generate final markdown report."""
         console.print("[dim]Generating markdown report...[/dim]")
         
@@ -101,15 +77,15 @@ class LLMProcessor:
             "tags": meta.tags,
         }, ensure_ascii=False)
         
-        merged_json = json.dumps(merged, ensure_ascii=False)
+        analysis_json = json.dumps(analysis, ensure_ascii=False)
         
-        prompt = PromptTemplates.format_final_md_prompt(meta_json, merged_json)
+        prompt = PromptTemplates.format_final_md_prompt(meta_json, analysis_json)
         
         markdown = self._run_llm_text(
-            system_prompt="You write crisp, skimmable Markdown for operators.",
+            system_prompt="You create comprehensive, well-structured Markdown reports from video analysis data.",
             user_prompt=prompt,
             temperature=0.2,
-            max_tokens=1800
+            max_tokens=2500
         )
         
         return markdown

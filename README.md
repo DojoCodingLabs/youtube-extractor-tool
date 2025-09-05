@@ -1,11 +1,13 @@
 # YouTube Value Extractor
 
-A powerful tool for extracting actionable insights from YouTube videos. Transform video content into structured, skimmable markdown reports with key takeaways, frameworks, and chapter outlines.
+A powerful tool for extracting actionable insights from YouTube videos. Transform video content into comprehensive, structured markdown reports with detailed insights, actionable frameworks, and key moments - designed to maximize value and understanding from any video content.
 
 ## ✨ Features
 
-- **🎯 Smart Content Extraction**: Automatically extracts key takeaways, frameworks, and actionable insights
-- **📝 Clean Markdown Output**: Generates well-structured reports with timestamps and metadata
+- **🧠 Full-Context Analysis**: Processes entire video transcripts at once for comprehensive understanding and insights
+- **📝 Structured Insights**: Generates detailed paragraphs (not bullet points) with context, examples, and actionable details
+- **🎯 Executive Summaries**: 2-3 paragraph summaries capturing core messages and value propositions
+- **⚙️ Step-by-Step Frameworks**: Detailed, actionable methodologies with clear implementation steps
 - **🚀 Multiple LLM Support**: Works with OpenAI, Anthropic, or local models via Ollama
 - **⚡ Intelligent Caching**: Caches transcripts and LLM responses for faster processing
 - **🔄 Whisper Fallback**: Local transcription when YouTube transcripts aren't available
@@ -53,20 +55,20 @@ OPENAI_API_KEY=sk-your-key-here
 
 ```bash
 # Process a single video
-python main.py process "https://www.youtube.com/watch?v=VIDEO_ID"
+python -m yt_extractor.cli process "https://www.youtube.com/watch?v=VIDEO_ID" --output-dir ./outputs
 
 # Process multiple videos
-python main.py process "https://www.youtube.com/watch?v=ID1" "https://www.youtube.com/watch?v=ID2"
+python -m yt_extractor.cli process "https://www.youtube.com/watch?v=ID1" "https://www.youtube.com/watch?v=ID2"
 
 # Process from file (one URL per line)
 echo "https://www.youtube.com/watch?v=ID1" > videos.txt
-python main.py batch videos.txt
+python -m yt_extractor.cli batch videos.txt
 
 # Check configuration
-python main.py config check
+python -m yt_extractor.cli config check
 
 # View video info without processing
-python main.py info "https://www.youtube.com/watch?v=VIDEO_ID"
+python -m yt_extractor.cli info "https://www.youtube.com/watch?v=VIDEO_ID"
 ```
 
 ## 📋 CLI Commands
@@ -97,7 +99,7 @@ python main.py info "https://www.youtube.com/watch?v=VIDEO_ID"
 
 ## 📖 Output Format
 
-The tool generates markdown files with this structure:
+The tool generates comprehensive markdown files with this structure:
 
 ```markdown
 ---
@@ -115,29 +117,37 @@ tags: ["tag1", "tag2"]
 # Video Title
 - Channel: Channel Name  
 - Published: 2024-03-15
-- Duration: 25:30
-- URL: https://www.youtube.com/watch?v=VIDEO_ID
+- Duration: 25 minutes and 30 seconds
+- URL: [Watch here](https://www.youtube.com/watch?v=VIDEO_ID)
 
-## TL;DR
-One paragraph summary of the core idea and value.
+## Executive Summary
+Comprehensive 2-3 paragraph overview capturing the core message, value proposition, and key themes. This section provides full context understanding by analyzing the complete transcript, identifying overarching concepts, and connecting different parts of the content for maximum insight value.
 
-## Key Takeaways
-- Main point with timestamp [t=05:30]
-- Another insight with timestamp [t=12:45]
-- Important concept with timestamp [t=18:20]
+The second paragraph continues the analysis, highlighting strategic implications, practical applications, and the broader significance of the content within its domain.
 
-## Frameworks & Models
-**Framework Name** — Step-by-step breakdown:
-1. First step
-2. Second step  
-3. Third step
-Source: [t=15:30]
+## Key Insights
 
-## Chapters
-02:30 Introduction and Overview
-08:15 Core Concepts
-15:45 Implementation Details
-22:10 Conclusion and Next Steps
+### Major Concept Title
+Detailed paragraph explaining the first major insight with full context, specific examples from the video, strategic reasoning, and actionable details. Each insight is structured as a comprehensive analysis (3-5 sentences) that provides genuine value rather than surface-level bullet points. The analysis includes specific strategies, methodologies, and reasoning patterns discussed in the video.
+
+### Another Key Concept
+Second structured paragraph about another important insight, including context, examples, and practical applications. These insights are generated through full-transcript analysis, ensuring deep understanding and meaningful connections between concepts.
+
+## Frameworks & Methods
+
+### Framework Name
+Description of what the framework does and why it's valuable for the reader.
+**Steps:**
+1. First step with detailed explanation and context from the video
+2. Second step with practical examples and implementation guidance  
+3. Third step with additional context and best practices
+**Reference:** [t=15:30]
+
+## Key Timestamps
+Important moments for easy navigation:
+- **[t=05:30]** Description of key moment or concept introduction
+- **[t=12:45]** Important insight or framework explanation
+- **[t=18:20]** Critical implementation detail or example
 ```
 
 ## ⚙️ Configuration Options
@@ -152,8 +162,8 @@ Source: [t=15:30]
 | `DEFAULT_OUTPUT_DIR` | Output directory | `./notes` |
 | `ENABLE_CACHE` | Enable caching | `true` |
 | `CACHE_DIR` | Cache directory | `./.cache` |
-| `DEFAULT_CHUNK_CHARS` | Chunk size for processing | `4000` |
 | `REPORT_TZ` | Timezone for timestamps | `America/Costa_Rica` |
+| `MAX_CONCURRENT_VIDEOS` | Max concurrent video processing | `3` |
 
 ### Whisper Configuration (Optional)
 
@@ -168,16 +178,16 @@ Source: [t=15:30]
 ### Caching
 
 The tool automatically caches:
-- **Transcripts**: Avoid re-downloading YouTube transcripts
-- **LLM Responses**: Skip re-processing identical content chunks
+- **Transcripts**: Avoid re-downloading YouTube transcripts (7 days TTL)
+- **LLM Responses**: Skip re-processing identical full transcripts (30 days TTL)
 
 Cache management:
 ```bash
 # View cache statistics
-python main.py cache stats
+python -m yt_extractor.cli cache stats
 
 # Clear cache
-python main.py cache clear
+python -m yt_extractor.cli cache clear
 ```
 
 ### Whisper Fallback
@@ -205,7 +215,7 @@ https://www.youtube.com/watch?v=VIDEO_ID_3
 
 Then process them all:
 ```bash
-python main.py batch videos.txt --concurrent 3
+python -m yt_extractor.cli batch videos.txt --concurrent 3
 ```
 
 ## 🧪 Development
@@ -250,9 +260,10 @@ yt_extractor/
 │   └── prompts.py         # Prompt templates
 ├── utils/
 │   ├── __init__.py
-│   ├── cache.py           # Caching utilities
-│   ├── chunking.py        # Transcript chunking
-│   └── formatting.py     # Output formatting
+│   ├── cache.py           # Caching utilities  
+│   ├── transcript.py      # Transcript processing
+│   ├── formatting.py      # Output formatting
+│   └── retry.py           # Retry mechanisms
 └── cli.py                 # Command-line interface
 ```
 
