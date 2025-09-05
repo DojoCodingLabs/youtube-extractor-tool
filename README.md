@@ -16,6 +16,8 @@ A powerful tool for extracting actionable insights from YouTube videos. Transfor
 
 ## 🚀 Quick Start
 
+**New to the tool?** See [QUICKSTART.md](QUICKSTART.md) for a 5-minute setup guide.
+
 ### Installation
 
 ```bash
@@ -23,11 +25,17 @@ A powerful tool for extracting actionable insights from YouTube videos. Transfor
 git clone https://github.com/yourusername/youtube-extractor-tool.git
 cd youtube-extractor-tool
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Or install in development mode
+# Option 1: Install with pip (recommended)
 pip install -e .
+
+# Option 2: Install with optional Whisper support
+pip install -e ".[whisper]"
+
+# Option 3: Install with development dependencies
+pip install -e ".[dev,whisper]"
+
+# Option 4: Install from requirements.txt
+pip install -r requirements.txt
 ```
 
 ### Configuration
@@ -39,16 +47,19 @@ cp .env.example .env
 
 2. Edit `.env` and set your API key:
 ```bash
-# For OpenAI
+# For OpenAI (Recommended)
 LLM_MODEL=gpt-4o-mini
-OPENAI_API_KEY=sk-your-key-here
+OPENAI_API_KEY=sk-your-openai-key-here
 
-# For Anthropic
+# For Anthropic Claude
 # LLM_MODEL=claude-3-5-sonnet-latest
-# ANTHROPIC_API_KEY=your-key-here
+# ANTHROPIC_API_KEY=sk-ant-api-your-key-here
 
-# For local models
+# For local models (Privacy-focused)
 # LLM_MODEL=ollama/llama3.1:8b
+
+# Set output directory
+DEFAULT_OUTPUT_DIR=./outputs
 ```
 
 ### Basic Usage
@@ -266,6 +277,16 @@ yt_extractor/
 │   └── retry.py           # Retry mechanisms
 └── cli.py                 # Command-line interface
 ```
+
+## 📖 Documentation
+
+This repository includes comprehensive documentation:
+
+- **[QUICKSTART.md](QUICKSTART.md)** - 5-minute setup guide for new users
+- **[CONFIGURATION.md](CONFIGURATION.md)** - Complete configuration reference with examples
+- **[USAGE_EXAMPLES.md](USAGE_EXAMPLES.md)** - Real-world usage scenarios and best practices  
+- **[CLAUDE.md](CLAUDE.md)** - Architecture guide for development with Claude Code
+- **[TESTING.md](TESTING.md)** - Testing guide and procedures
 
 ## 📝 License
 
