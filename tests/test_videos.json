@@ -1,0 +1,40 @@
+{
+  "test_videos": {
+    "short_tech": {
+      "url": "https://www.youtube.com/watch?v=5mc9mbzeqcM",
+      "description": "Real test video with clear transcript",
+      "expected_duration": "Unknown",
+      "expected_features": ["clear_transcript", "real_content"],
+      "note": "Real YouTube video for testing"
+    },
+    "medium_educational": {
+      "url": "https://www.youtube.com/watch?v=example123",
+      "description": "Medium-length educational content",
+      "expected_duration": "10-20 minutes",
+      "expected_features": ["frameworks", "key_takeaways", "chapters"],
+      "note": "Replace with actual test video URL"
+    },
+    "long_presentation": {
+      "url": "https://www.youtube.com/watch?v=example456",
+      "description": "Long-form presentation or conference talk",
+      "expected_duration": "> 30 minutes",
+      "expected_features": ["multiple_chapters", "complex_frameworks", "detailed_takeaways"],
+      "note": "Replace with actual test video URL"
+    },
+    "no_transcript": {
+      "url": "https://www.youtube.com/watch?v=example789",
+      "description": "Video without official transcript (for Whisper testing)",
+      "expected_duration": "< 10 minutes",
+      "expected_features": ["whisper_fallback"],
+      "note": "Replace with actual test video URL - needs Whisper installed"
+    }
+  },
+  "test_expectations": {
+    "min_bullets": 3,
+    "max_bullets": 15,
+    "min_frameworks": 0,
+    "max_frameworks": 8,
+    "required_sections": ["TL;DR", "Key Takeaways"],
+    "optional_sections": ["Frameworks & Models", "Chapters"]
+  }
+}

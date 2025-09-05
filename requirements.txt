@@ -1,0 +1,24 @@
+# Core dependencies
+litellm>=1.48.0
+youtube_transcript_api>=0.6.2
+yt-dlp>=2024.4.9
+pydantic>=2.7.0
+python-slugify>=8.0.4
+
+# UI and progress
+rich>=13.0.0
+click>=8.1.0
+
+# Optional: Whisper fallback (uncomment if needed)
+# faster-whisper>=1.0.0
+# soundfile>=0.12.1
+
+# Development dependencies
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.0.0
+isort>=5.12.0
+mypy>=1.5.0
+
+# Caching
+diskcache>=5.6.0
