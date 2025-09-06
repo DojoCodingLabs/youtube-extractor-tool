@@ -22,7 +22,7 @@ def format_time(seconds: float) -> str:
 
 def safe_filename(meta: VideoMeta) -> str:
     """Generate a safe filename from video metadata."""
-    title_slug = slugify(meta.title)[:80]
+    title_slug = slugify(meta.title)
     return f"{meta.published_at or 'undated'}--{meta.id}--{title_slug}.md"
 
 
