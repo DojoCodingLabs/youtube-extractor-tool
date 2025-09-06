@@ -3,7 +3,7 @@
 import pytest
 from yt_extractor.core.models import VideoMeta, TranscriptLine
 from yt_extractor.utils.formatting import format_time, safe_filename
-from yt_extractor.utils.chunking import chunk_transcript, join_transcript_lines
+from yt_extractor.utils.transcript import join_transcript_lines
 
 
 def test_format_time():
@@ -31,24 +31,6 @@ def test_safe_filename():
     assert filename.endswith(".md")
     assert "how-to-build-amazing-apps" in filename
 
-
-def test_chunk_transcript():
-    """Test transcript chunking."""
-    lines = [
-        TranscriptLine(0.0, 2.0, "First sentence."),
-        TranscriptLine(2.0, 2.0, "Second sentence."),
-        TranscriptLine(4.0, 2.0, "Third sentence."),
-        TranscriptLine(6.0, 2.0, "Fourth sentence."),
-    ]
-    
-    chunks = chunk_transcript(lines, max_chars=30)
-    
-    # Should create multiple chunks due to character limit
-    assert len(chunks) >= 2
-    
-    # All lines should be preserved
-    total_lines = sum(len(chunk) for chunk in chunks)
-    assert total_lines == len(lines)
 
 
 def test_join_transcript_lines():

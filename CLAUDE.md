@@ -5,13 +5,42 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 ### Setup
+
+#### Virtual Environment (Recommended)
+A Python virtual environment isolates project dependencies and prevents conflicts:
+
 ```bash
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate  # Linux/Mac
+venv\Scripts\activate     # Windows
+
 # Install in development mode with all dependencies
 pip install -e ".[dev,whisper]"
 
-# Or use virtual environment
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
+# Deactivate when done (optional)
+deactivate
+```
+
+**Why use virtual environments:**
+- Prevents dependency conflicts between projects
+- Keeps your system Python clean
+- Allows different Python versions per project
+- Makes dependency management reproducible
+
+**Key benefits:**
+- `pip install` only affects the active environment
+- Each project can have different package versions
+- Easy to recreate environments using `requirements.txt`
+- System Python remains unmodified
+
+When activated, your shell prompt typically shows `(venv)` indicating you're in the virtual environment.
+
+#### Direct Installation (Alternative)
+```bash
+# Install in development mode with all dependencies
 pip install -e ".[dev,whisper]"
 ```
 

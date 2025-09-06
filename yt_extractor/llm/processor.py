@@ -60,7 +60,7 @@ class LLMProcessor:
         analysis.setdefault("summary", "")
         analysis.setdefault("key_insights", [])
         analysis.setdefault("frameworks", [])
-        analysis.setdefault("timestamps", [])
+        analysis.setdefault("key_moments", [])
         
         return analysis
     

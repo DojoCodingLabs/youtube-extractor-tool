@@ -220,30 +220,3 @@ class TestPerformanceAndScaling:
             content = result_path.read_text()
             assert len(content) > 100
     
-    def test_memory_usage_large_transcript(self):
-        """Test memory usage doesn't explode with large transcripts."""
-        # This is a unit test that doesn't require real videos
-        from yt_extractor.core.models import TranscriptLine
-        from yt_extractor.utils.chunking import chunk_transcript
-        
-        # Create a very large mock transcript
-        large_transcript = []
-        for i in range(1000):  # 1000 transcript lines
-            large_transcript.append(
-                TranscriptLine(
-                    start=i * 5.0,
-                    duration=5.0,
-                    text=f"This is transcript line number {i} with some content to make it realistic."
-                )
-            )
-        
-        # Should be able to chunk without memory issues
-        chunks = chunk_transcript(large_transcript, max_chars=1000)
-        
-        # Should create multiple chunks
-        assert len(chunks) > 10
-        
-        # No chunk should be too large
-        for chunk in chunks:
-            total_chars = sum(len(line.text) for line in chunk)
-            assert total_chars <= 1200  # Allow some overflow for natural boundaries

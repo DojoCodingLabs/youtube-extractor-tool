@@ -12,7 +12,7 @@ class PromptTemplates:
         "- 'summary': 2-3 paragraph executive summary of the core message and value\n"
         "- 'key_insights': 8-12 most important insights as detailed paragraphs (not bullet points)\n"
         "- 'frameworks': actionable frameworks/methods with step-by-step breakdowns\n"
-        "- 'timestamps': key moments with specific timestamps for reference\n\n"
+        "- 'key_moments': chronological sequence of important events/topics discussed\n\n"
         
         "Guidelines:\n"
         "- Focus on practical, actionable insights that provide real value\n"
@@ -20,7 +20,7 @@ class PromptTemplates:
         "- Include specific examples, strategies, and reasoning from the video\n"
         "- Use the full context to identify overarching themes and connections\n"
         "- Frameworks should be detailed with clear steps and context\n"
-        "- Include precise timestamps [t=mm:ss] for key points\n\n"
+        "- Present key moments in chronological order as they appear in the video\n\n"
         
         "Example format:\n"
         '{{\n'
@@ -29,8 +29,8 @@ class PromptTemplates:
         '    "Detailed paragraph explaining first major insight with context and examples...",\n'
         '    "Another structured paragraph about second key concept..."\n'
         '  ],\n'
-        '  "frameworks": [{{"name": "Framework Name", "description": "What it does", "steps": ["Step 1 with details", "Step 2 with context"], "timestamp": "t=10:20"}}],\n'
-        '  "timestamps": [{{"time": "t=05:30", "description": "Key moment description"}}]\n'
+        '  "frameworks": [{{"name": "Framework Name", "description": "What it does", "steps": ["Step 1 with details", "Step 2 with context"]}}],\n'
+        '  "key_moments": ["First major topic introduced", "Key transition or development", "Important conclusion or call to action"]\n'
         '}}\n\n'
         "Full transcript:\n\n{transcript}"
     )
@@ -59,10 +59,10 @@ class PromptTemplates:
         "**Steps:**\n"
         "1. Step with detailed explanation\n"
         "2. Step with context and examples\n"
-        "**Reference:** [t=mm:ss]\n\n"
-        "## Key Timestamps\n"
-        "Important moments for easy navigation:\n"
-        "- **[t=mm:ss]** Description of key moment\n\n"
+        "\n\n"
+        "## Key Moments\n"
+        "Chronological flow of important topics:\n"
+        "- Description of key moment or topic\n\n"
         "Return only the Markdown body."
     )
     
