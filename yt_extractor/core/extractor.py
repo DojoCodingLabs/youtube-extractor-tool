@@ -26,7 +26,7 @@ class YouTubeExtractor:
         """Initialize the extractor."""
         self.llm_processor = LLMProcessor()
     
-    def process_video(self, url: str, output_dir: Optional[str] = None) -> Path:
+    def process_video(self, url: str, output_dir: Optional[str] = None, category: Optional[str] = None) -> Path:
         """
         Process a single YouTube video and save the result with recovery support.
         
@@ -63,15 +63,23 @@ class YouTubeExtractor:
             
             # Wrap with front matter
             full_markdown = wrap_with_front_matter(
-                markdown_body, 
-                meta, 
-                config.report_timezone
+                markdown_body,
+                meta,
+                config.report_timezone,
+                category=category
             )
-            
+
             # Save to file
             output_path = ensure_output_dir(output_dir or config.default_output_dir)
-            filename = safe_filename(meta)
-            file_path = output_path / filename
+            if category:
+                # Create category subdirectory
+                category_path = output_path / category
+                category_path.mkdir(parents=True, exist_ok=True)
+                filename = safe_filename(meta)
+                file_path = category_path / filename
+            else:
+                filename = safe_filename(meta)
+                file_path = output_path / filename
             
             file_path.write_text(full_markdown, encoding="utf-8")
             console.print(f"[green]✅ Saved to: {file_path}[/green]")
@@ -105,7 +113,7 @@ class YouTubeExtractor:
         import hashlib
         return hashlib.md5(url.encode()).hexdigest()[:11]
     
-    def process_videos(self, urls: List[str], output_dir: Optional[str] = None) -> List[Path]:
+    def process_videos(self, urls: List[str], output_dir: Optional[str] = None, category: Optional[str] = None) -> List[Path]:
         """
         Process multiple YouTube videos.
         
@@ -116,7 +124,7 @@ class YouTubeExtractor:
         
         for url in urls:
             try:
-                result = self.process_video(url, output_dir)
+                result = self.process_video(url, output_dir, category=category)
                 results.append(result)
             except Exception as e:
                 console.print(f"[red]❌ Failed on {url}: {e}[/red]")

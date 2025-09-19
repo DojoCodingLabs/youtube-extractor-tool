@@ -26,7 +26,7 @@ def safe_filename(meta: VideoMeta) -> str:
     return f"{meta.published_at or 'undated'}--{meta.id}--{title_slug}.md"
 
 
-def wrap_with_front_matter(md_body: str, meta: VideoMeta, tz: str) -> str:
+def wrap_with_front_matter(md_body: str, meta: VideoMeta, tz: str, category: Optional[str] = None) -> str:
     """Wrap markdown content with YAML front matter."""
     zone = ZoneInfo(tz) if ZoneInfo else None
     now = dt.datetime.now(zone) if zone else dt.datetime.utcnow()
@@ -43,6 +43,9 @@ def wrap_with_front_matter(md_body: str, meta: VideoMeta, tz: str) -> str:
         "created": date_str,
         "tags": meta.tags,
     }
+
+    if category:
+        front_matter["category"] = category
     
     front = "---\n"
     front += "\n".join(f"{k}: {json.dumps(v, ensure_ascii=False)}" for k, v in front_matter.items())

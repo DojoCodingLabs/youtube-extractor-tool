@@ -1,0 +1,185 @@
+# Claude Commands for YouTube Extractor Tool
+
+## Development Commands
+
+### process-video
+Process a YouTube video with optional category
+```bash
+source venv/bin/activate && python -m yt_extractor.cli process "$1" --category "$2"
+```
+Parameters:
+- $1: YouTube URL to process
+- $2: Optional category (e.g., "AI/Agents", "Business/Marketing")
+
+### batch-process
+Process multiple videos from a file
+```bash
+source venv/bin/activate && python -m yt_extractor.cli batch "$1" --category "$2"
+```
+Parameters:
+- $1: Path to file containing URLs (one per line)
+- $2: Optional category for all videos
+
+### start-ui
+Launch the Streamlit web UI
+```bash
+source venv/bin/activate && streamlit run web_ui.py
+```
+
+### test-cli
+Test CLI functionality with help command
+```bash
+source venv/bin/activate && python -m yt_extractor.cli --help
+```
+
+### check-config
+Validate configuration settings
+```bash
+source venv/bin/activate && python -m yt_extractor.cli config check
+```
+
+### clear-cache
+Clear all cached data
+```bash
+source venv/bin/activate && python -m yt_extractor.cli cache clear
+```
+
+### view-stats
+Show cache statistics
+```bash
+source venv/bin/activate && python -m yt_extractor.cli cache stats
+```
+
+## Testing Commands
+
+### run-tests
+Run all tests with coverage
+```bash
+source venv/bin/activate && pytest --cov=yt_extractor
+```
+
+### run-specific-test
+Run a specific test file
+```bash
+source venv/bin/activate && pytest tests/$1 -v
+```
+Parameters:
+- $1: Name of test file (e.g., "test_models.py")
+
+### type-check
+Run type checking
+```bash
+source venv/bin/activate && mypy yt_extractor
+```
+
+### lint-code
+Format and lint code
+```bash
+source venv/bin/activate && black . && isort .
+```
+
+## File Management Commands
+
+### list-categories
+List all existing categories
+```bash
+find outputs -type d -not -path outputs | sed 's|outputs/||' | sort
+```
+
+### count-videos
+Count videos by category
+```bash
+find outputs -name "*.md" | grep -E "outputs/[^/]+/" | cut -d'/' -f2 | sort | uniq -c
+```
+
+### find-video
+Find videos by title or content
+```bash
+rg -i "$1" outputs --type md
+```
+Parameters:
+- $1: Search term to find in video content
+
+### backup-outputs
+Create backup of outputs directory
+```bash
+tar -czf outputs_backup_$(date +%Y%m%d_%H%M%S).tar.gz outputs/
+```
+
+## Setup Commands
+
+### install-deps
+Install all dependencies in virtual environment
+```bash
+source venv/bin/activate && pip install -e ".[dev,whisper]"
+```
+
+### create-venv
+Create and setup virtual environment
+```bash
+python -m venv venv && source venv/bin/activate && pip install -e ".[dev,whisper]"
+```
+
+### update-deps
+Update all dependencies
+```bash
+source venv/bin/activate && pip install --upgrade -e ".[dev,whisper]"
+```
+
+## Analytics Commands
+
+### video-stats
+Show statistics about processed videos
+```bash
+echo "Total videos: $(find outputs -name '*.md' | wc -l)"
+echo "Categories: $(find outputs -type d -not -path outputs | wc -l)"
+echo "Recent videos (last 7 days): $(find outputs -name '*.md' -mtime -7 | wc -l)"
+```
+
+### category-breakdown
+Show breakdown of videos by category
+```bash
+for dir in outputs/*/; do
+  if [ -d "$dir" ]; then
+    category=$(basename "$dir")
+    count=$(find "$dir" -name "*.md" | wc -l)
+    echo "$category: $count videos"
+  fi
+done | sort -k2 -nr
+```
+
+### recent-videos
+Show recently processed videos
+```bash
+find outputs -name "*.md" -exec ls -lt {} + | head -${1:-10}
+```
+Parameters:
+- $1: Number of recent videos to show (default: 10)
+
+## Git Commands
+
+### commit-changes
+Commit current changes with a descriptive message
+```bash
+git add . && git commit -m "$1
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+Parameters:
+- $1: Commit message describing the changes
+
+### push-changes
+Push changes to remote repository
+```bash
+git push origin main
+```
+
+### create-feature-branch
+Create and switch to a new feature branch
+```bash
+git checkout -b feature/$1
+```
+Parameters:
+- $1: Name of the feature being developed

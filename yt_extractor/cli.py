@@ -37,11 +37,12 @@ def cli(ctx, config_file, verbose):
 @cli.command()
 @click.argument("urls", nargs=-1, required=True)
 @click.option("--output-dir", "-o", help="Output directory for markdown files")
-@click.option("--format", "output_format", type=click.Choice(["markdown", "json"]), 
+@click.option("--format", "output_format", type=click.Choice(["markdown", "json"]),
               default="markdown", help="Output format")
+@click.option("--category", "-c", help="Category for organizing videos (e.g. 'AI/Agents', 'Business')")
 @click.option("--dry-run", is_flag=True, help="Preview processing without saving files")
 @click.pass_context
-def process(ctx, urls, output_dir, output_format, dry_run):
+def process(ctx, urls, output_dir, output_format, category, dry_run):
     """Process one or more YouTube videos."""
     try:
         config.validate()
@@ -59,10 +60,10 @@ def process(ctx, urls, output_dir, output_format, dry_run):
     
     try:
         if len(urls) == 1:
-            result = extractor.process_video(urls[0], output_dir)
+            result = extractor.process_video(urls[0], output_dir, category=category)
             console.print(f"[green]✅ Saved to: {result}[/green]")
         else:
-            results = extractor.process_videos(list(urls), output_dir)
+            results = extractor.process_videos(list(urls), output_dir, category=category)
             console.print(f"[green]✅ Processed {len(results)} videos successfully[/green]")
             
     except YouTubeExtractorError as e:

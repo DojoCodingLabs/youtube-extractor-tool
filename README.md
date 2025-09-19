@@ -8,7 +8,9 @@ A powerful tool for extracting actionable insights from YouTube videos. Transfor
 - **📝 Structured Insights**: Generates detailed paragraphs (not bullet points) with context, examples, and actionable details
 - **🎯 Executive Summaries**: 2-3 paragraph summaries capturing core messages and value propositions
 - **⚙️ Step-by-Step Frameworks**: Detailed, actionable methodologies with clear implementation steps
-- **🚀 Multiple LLM Support**: Works with OpenAI, Anthropic, or local models via Ollama
+- **🚀 Multiple LLM Support**: Works with OpenAI (GPT-5, GPT-4o), Anthropic, or local models via Ollama
+- **🌟 GPT-5 Enhanced**: Optimized for GPT-5 with unlimited token processing and JSON error recovery
+- **🖥️ Web Interface**: User-friendly Streamlit UI with real-time progress and category organization
 - **⚡ Intelligent Caching**: Caches transcripts and LLM responses for faster processing
 - **🔄 Whisper Fallback**: Local transcription when YouTube transcripts aren't available
 - **🛠 Rich CLI**: Full-featured command-line interface with progress indicators
@@ -47,8 +49,9 @@ cp .env.example .env
 
 2. Edit `.env` and set your API key:
 ```bash
-# For OpenAI (Recommended)
-LLM_MODEL=gpt-4o-mini
+# For OpenAI (GPT-5 provides highest quality analysis)
+LLM_MODEL=gpt-5
+# LLM_MODEL=gpt-4o-mini  # Faster/cheaper alternative
 OPENAI_API_KEY=sk-your-openai-key-here
 
 # For Anthropic Claude
@@ -58,15 +61,18 @@ OPENAI_API_KEY=sk-your-openai-key-here
 # For local models (Privacy-focused)
 # LLM_MODEL=ollama/llama3.1:8b
 
-# Set output directory
+# Set output directory (files organized by category)
 DEFAULT_OUTPUT_DIR=./outputs
 ```
 
 ### Basic Usage
 
 ```bash
-# Process a single video
-python -m yt_extractor.cli process "https://www.youtube.com/watch?v=VIDEO_ID" --output-dir ./outputs
+# Process a single video with category (saves to ./outputs/AI/Agents/)
+python -m yt_extractor.cli process "https://www.youtube.com/watch?v=VIDEO_ID" --output-dir ./outputs --category "AI/Agents"
+
+# Start the web UI (user-friendly interface)
+source venv/bin/activate && streamlit run web_ui.py
 
 # Process multiple videos
 python -m yt_extractor.cli process "https://www.youtube.com/watch?v=ID1" "https://www.youtube.com/watch?v=ID2"

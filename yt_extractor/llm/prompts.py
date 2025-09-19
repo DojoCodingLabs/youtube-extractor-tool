@@ -7,7 +7,10 @@ class PromptTemplates:
     FULL_ANALYSIS_PROMPT = (
         "You are analyzing a complete YouTube video transcript to extract the most valuable insights. "
         "The user wants structured, actionable content with full context understanding.\n\n"
-        
+
+        "CRITICAL: Return ONLY valid JSON with no additional text, comments, or markdown formatting. "
+        "Your entire response must be valid JSON that can be parsed directly.\n\n"
+
         "Return strict JSON with these keys:\n"
         "- 'summary': 2-3 paragraph executive summary of the core message and value\n"
         "- 'key_insights': 8-12 most important insights as detailed paragraphs (not bullet points)\n"

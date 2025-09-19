@@ -224,9 +224,23 @@ api_retry = retry_on_conditions(
     max_delay=120.0
 )
 
-llm_retry = retry_with_backoff(
-    max_attempts=3,
-    initial_delay=1.0,
-    max_delay=30.0,
-    exceptions=(Exception,),  # Retry on most exceptions except specific ones
+def is_gpt5_empty_response(exception: Exception) -> bool:
+    """Check if exception is GPT-5 returning empty content."""
+    error_str = str(exception).lower()
+    return "empty content" in error_str or "no json found" in error_str
+
+def is_gpt5_error(exception: Exception) -> bool:
+    """Check if exception is a GPT-5 specific issue."""
+    error_str = str(exception).lower()
+    return any(msg in error_str for msg in [
+        "empty content", "no json found", "temperature=", "gpt-5",
+        "rate limit", "model issue", "api issue"
+    ])
+
+# Enhanced LLM retry with longer delays for GPT-5
+llm_retry = retry_on_conditions(
+    conditions=[is_gpt5_error, is_api_rate_limit, is_temporary_api_error, is_gpt5_empty_response],
+    max_attempts=5,  # More attempts for GPT-5
+    initial_delay=2.0,  # Longer initial delay
+    max_delay=60.0  # Much longer max delay
 )

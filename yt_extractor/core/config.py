@@ -72,6 +72,14 @@ class Config:
             return int(os.getenv("MAX_CONCURRENT_VIDEOS", "3"))
         except ValueError:
             return 3
+
+    @property
+    def default_chunk_chars(self) -> int:
+        """Default chunk size for processing."""
+        try:
+            return int(os.getenv("DEFAULT_CHUNK_CHARS", "4000"))
+        except ValueError:
+            return 4000
     
     def validate(self) -> None:
         """Validate configuration."""

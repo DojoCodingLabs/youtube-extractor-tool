@@ -71,8 +71,11 @@ mypy yt_extractor
 
 ### Running the Tool
 ```bash
-# Process single video
-python -m yt_extractor.cli process "https://www.youtube.com/watch?v=VIDEO_ID" --output-dir ./outputs
+# Process single video (outputs to ./outputs/category/)
+python -m yt_extractor.cli process "https://www.youtube.com/watch?v=VIDEO_ID" --output-dir ./outputs --category "AI/Agents"
+
+# Start web UI
+source venv/bin/activate && streamlit run web_ui.py
 
 # Check configuration
 python -m yt_extractor.cli config check
@@ -96,7 +99,7 @@ The tool follows a three-stage pipeline orchestrated by `YouTubeExtractor`:
 
 **State Persistence**: The `RecoveryManager` (`core/recovery.py`) saves progress between pipeline stages, allowing recovery from failures without reprocessing completed stages.
 
-**Model-Agnostic LLM Integration**: Uses LiteLLM for unified access to OpenAI, Anthropic, and Ollama models. Temperature is automatically adjusted for GPT-5 models which only support temperature=1.0.
+**Model-Agnostic LLM Integration**: Uses LiteLLM for unified access to OpenAI, Anthropic, and Ollama models. Temperature is automatically adjusted for GPT-5 models which only support temperature=1.0. Token limits are removed for GPT-5 to accommodate reasoning tokens plus output.
 
 **Dual Caching Strategy**: 
 - Transcript cache (7-day TTL) via `utils/cache.py`
@@ -117,19 +120,23 @@ Built with Click, the CLI (`cli.py`) provides subcommands:
 - `info`: Video metadata preview without processing
 
 ### Output Structure
-Generated markdown follows a standardized format:
+Generated markdown follows a standardized format and is saved to `./outputs/$Category/`:
 - YAML frontmatter with metadata
 - Executive Summary (2-3 comprehensive paragraphs)
 - Key Insights (detailed paragraph-form analysis, not bullet points)
 - Frameworks & Methods (step-by-step actionable guidance)
 - Key Timestamps (navigation references)
 
+Files are organized by category: `./outputs/AI/Agents/video-title.md`
+
 ### Error Handling
 Implements exponential backoff retry logic (`utils/retry.py`) with specific handlers for:
 - Network errors
-- API rate limits  
+- API rate limits
 - Temporary API failures
-- GPT model-specific temperature constraints
+- GPT-5 specific issues (empty responses, JSON formatting)
+- Automatic JSON trailing comma fixes for GPT-5 output
+- Enhanced retry logic for GPT-5 (5 attempts with longer delays)
 
 ### Data Models
 Three primary models in `core/models.py`:
