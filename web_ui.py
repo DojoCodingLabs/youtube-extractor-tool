@@ -247,7 +247,9 @@ def render_batch_queue_tab():
         )
 
     with col2:
-        # Category selection
+        # Category selection - initialize to None
+        category = None
+
         existing_categories = get_existing_categories()
         if existing_categories:
             category_option = st.selectbox(
@@ -256,19 +258,23 @@ def render_batch_queue_tab():
                 help="Select category for all videos in this batch"
             )
             if category_option == "Custom...":
-                category = st.text_input(
+                custom_input = st.text_input(
                     "Custom Category",
                     placeholder="e.g., AI/Agents",
                     help="Use forward slashes for nested categories"
                 )
+                # Sanitize: convert empty string to None
+                category = custom_input.strip() if custom_input and custom_input.strip() else None
             else:
                 category = category_option
         else:
-            category = st.text_input(
+            user_input = st.text_input(
                 "Category",
                 placeholder="e.g., AI/Agents",
                 help="Use forward slashes for nested categories"
             )
+            # Sanitize: convert empty string to None
+            category = user_input.strip() if user_input and user_input.strip() else None
 
     # Add to queue button
     if st.button("➕ Add to Queue", type="primary", use_container_width=True):
@@ -289,22 +295,29 @@ def render_batch_queue_tab():
         if urls:
             added_count = 0
             duplicate_count = 0
+            invalid_count = 0
 
             for url in urls:
                 try:
-                    queue.add(url, category=category if category else None)
+                    queue.add(url, category=category)
                     added_count += 1
-                except ValueError:
-                    # Duplicate URL
-                    duplicate_count += 1
+                except ValueError as e:
+                    # Check if it's a duplicate or invalid URL
+                    if "already in queue" in str(e):
+                        duplicate_count += 1
+                    else:
+                        invalid_count += 1
 
             if added_count > 0:
                 st.success(f"✅ Added {added_count} video(s) to queue")
             if duplicate_count > 0:
                 st.warning(f"⚠️ Skipped {duplicate_count} duplicate URL(s)")
+            if invalid_count > 0:
+                st.error(f"❌ Skipped {invalid_count} invalid URL(s)")
 
-            # Clear input
-            st.rerun()
+            # Clear input and refresh
+            if added_count > 0:
+                st.rerun()
         else:
             st.error("❌ No valid URLs provided")
 
@@ -427,27 +440,45 @@ def render_queue_item(item, queue):
         st.divider()
 
 
-def process_queue_with_updates(queue: ProcessingQueue):
-    """Process the queue with real-time UI updates."""
-    pending_items = queue.get_by_status(QueueStatus.PENDING)
+def process_queue_with_updates(queue: ProcessingQueue) -> None:
+    """
+    Process the queue with real-time UI updates.
 
-    if not pending_items:
+    Fetches items dynamically to avoid race conditions if queue is modified
+    during processing.
+
+    Args:
+        queue: ProcessingQueue instance to process
+    """
+    # Get initial count for progress tracking
+    stats = queue.get_stats()
+    initial_pending = stats["pending"]
+
+    if initial_pending == 0:
         st.warning("No pending items to process")
         return
 
-    total = len(pending_items)
     progress_bar = st.progress(0)
     status_text = st.empty()
+    processed_count = 0
+    failed_count = 0
 
     # Initialize extractor
     extractor = YouTubeExtractor()
 
-    for i, item in enumerate(pending_items, 1):
+    # Process items dynamically (fixes race condition)
+    while True:
+        item = queue.get_next_pending()
+        if not item:
+            break  # No more pending items
+
+        processed_count += 1
+
         try:
             # Update UI
-            progress = i / total
-            progress_bar.progress(progress)
-            status_text.info(f"🔄 Processing {i}/{total}: {item.url}")
+            progress = processed_count / initial_pending
+            progress_bar.progress(min(progress, 1.0))
+            status_text.info(f"🔄 Processing {processed_count}/{initial_pending}: {item.url}")
 
             # Fetch metadata if not already available
             if not item.title:
@@ -465,25 +496,25 @@ def process_queue_with_updates(queue: ProcessingQueue):
 
             # Update status to completed
             queue.update_status(item.id, QueueStatus.COMPLETED, output_path=str(output_path))
-            status_text.success(f"✅ Completed {i}/{total}: {item.url}")
+            status_text.success(f"✅ Completed {processed_count}/{initial_pending}: {item.url}")
 
         except Exception as e:
             # Update status to failed
             error_msg = str(e)
             queue.update_status(item.id, QueueStatus.FAILED, error=error_msg)
-            status_text.error(f"❌ Failed {i}/{total}: {error_msg}")
+            status_text.error(f"❌ Failed {processed_count}/{initial_pending}: {error_msg}")
+            failed_count += 1
 
         # Brief pause to show status
         time.sleep(0.5)
 
     # Final status
-    stats = queue.get_stats()
     progress_bar.progress(1.0)
 
-    if stats["failed"] > 0:
-        status_text.warning(f"⚠️ Completed with {stats['failed']} failure(s)")
+    if failed_count > 0:
+        status_text.warning(f"⚠️ Completed with {failed_count} failure(s) out of {processed_count} processed")
     else:
-        status_text.success(f"🎉 All {total} video(s) processed successfully!")
+        status_text.success(f"🎉 All {processed_count} video(s) processed successfully!")
 
 
 def render_pdf_export_tab():

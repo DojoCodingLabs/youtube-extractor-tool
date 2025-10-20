@@ -1,12 +1,24 @@
 """Queue management for batch video processing."""
 
 import json
+import logging
+import re
 import threading
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Callable
 from datetime import datetime
 from enum import Enum
 from dataclasses import dataclass, asdict
+
+# Module constants
+QUEUE_ITEM_ID_LENGTH = 8
+MAX_FILE_SAVE_RETRIES = 3
+YOUTUBE_URL_PATTERN = re.compile(
+    r'^https?://(www\.)?(youtube\.com/watch\?v=|youtu\.be/)[\w-]+.*$'
+)
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class QueueStatus(str, Enum):
@@ -37,7 +49,7 @@ class QueueItem:
             self.added_at = datetime.now().isoformat()
         if self.id is None:
             import hashlib
-            self.id = hashlib.md5(f"{self.url}{self.added_at}".encode()).hexdigest()[:8]
+            self.id = hashlib.md5(f"{self.url}{self.added_at}".encode()).hexdigest()[:QUEUE_ITEM_ID_LENGTH]
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -54,19 +66,64 @@ class QueueItem:
         return cls(**data)
 
 
+def _validate_youtube_url(url: str) -> bool:
+    """
+    Validate YouTube URL format.
+
+    Args:
+        url: URL string to validate
+
+    Returns:
+        True if valid YouTube URL, False otherwise
+    """
+    if not url or not isinstance(url, str):
+        return False
+    return bool(YOUTUBE_URL_PATTERN.match(url.strip()))
+
+
+def _sanitize_category(category: Optional[str]) -> Optional[str]:
+    """
+    Sanitize category string.
+
+    Args:
+        category: Category string to sanitize
+
+    Returns:
+        Sanitized category or None if empty/invalid
+
+    Raises:
+        ValueError: If category contains dangerous characters
+    """
+    if not category or not isinstance(category, str):
+        return None
+
+    # Strip whitespace
+    category = category.strip()
+    if not category:
+        return None
+
+    # Check for path traversal attempts
+    if '..' in category or '\\' in category or '\0' in category:
+        raise ValueError(f"Invalid category: contains dangerous characters")
+
+    return category
+
+
 class ProcessingQueue:
     """Manages a queue of videos to be processed."""
 
-    def __init__(self, queue_dir: Path = None):
+    def __init__(self, queue_dir: Path = None, max_size: int = 1000):
         """
         Initialize the processing queue.
 
         Args:
             queue_dir: Directory to store queue state (default: outputs/.queue)
+            max_size: Maximum number of items allowed in queue (default: 1000)
         """
         self.queue_dir = queue_dir or Path("outputs/.queue")
         self.queue_dir.mkdir(parents=True, exist_ok=True)
         self.queue_file = self.queue_dir / "queue.json"
+        self.max_size = max_size
 
         self._items: List[QueueItem] = []
         self._lock = threading.Lock()
@@ -79,26 +136,44 @@ class ProcessingQueue:
                 with open(self.queue_file, "r") as f:
                     data = json.load(f)
                     self._items = [QueueItem.from_dict(item) for item in data.get("items", [])]
+                logger.info(f"Loaded {len(self._items)} items from queue")
             except Exception as e:
-                print(f"Warning: Failed to load queue: {e}")
+                logger.warning(f"Failed to load queue: {e}")
                 self._items = []
 
     def _save(self):
-        """Save queue to disk."""
-        try:
-            data = {
-                "items": [item.to_dict() for item in self._items],
-                "updated_at": datetime.now().isoformat(),
-            }
-            with open(self.queue_file, "w") as f:
-                json.dump(data, f, indent=2)
-        except Exception as e:
-            print(f"Error saving queue: {e}")
+        """Save queue to disk with retry logic and atomic writes."""
+        import time
+
+        for attempt in range(MAX_FILE_SAVE_RETRIES):
+            try:
+                data = {
+                    "items": [item.to_dict() for item in self._items],
+                    "updated_at": datetime.now().isoformat(),
+                }
+
+                # Write to temp file first (atomic operation)
+                temp_file = self.queue_file.with_suffix('.tmp')
+                with open(temp_file, "w") as f:
+                    json.dump(data, f, indent=2)
+
+                # Atomic rename
+                temp_file.replace(self.queue_file)
+                logger.debug(f"Queue saved successfully ({len(self._items)} items)")
+                return
+
+            except Exception as e:
+                logger.warning(f"Failed to save queue (attempt {attempt + 1}/{MAX_FILE_SAVE_RETRIES}): {e}")
+                if attempt < MAX_FILE_SAVE_RETRIES - 1:
+                    time.sleep(0.1 * (attempt + 1))  # Exponential backoff
+                else:
+                    logger.error(f"Failed to save queue after {MAX_FILE_SAVE_RETRIES} attempts")
+                    raise IOError(f"Could not save queue: {e}")
 
     def add(self, url: str, category: Optional[str] = None, title: Optional[str] = None,
             channel: Optional[str] = None) -> QueueItem:
         """
-        Add a URL to the queue.
+        Add a URL to the queue with validation.
 
         Args:
             url: YouTube video URL
@@ -108,8 +183,23 @@ class ProcessingQueue:
 
         Returns:
             The created QueueItem
+
+        Raises:
+            ValueError: If URL is invalid, already in queue, or queue is full
         """
+        # Validate URL
+        url = url.strip() if isinstance(url, str) else ""
+        if not _validate_youtube_url(url):
+            raise ValueError(f"Invalid YouTube URL: {url}")
+
+        # Sanitize category
+        category = _sanitize_category(category)
+
         with self._lock:
+            # Check queue size limit
+            if len(self._items) >= self.max_size:
+                raise ValueError(f"Queue is full (maximum {self.max_size} items)")
+
             # Check for duplicates
             if any(item.url == url and item.status != QueueStatus.FAILED for item in self._items):
                 raise ValueError(f"URL already in queue: {url}")
@@ -117,6 +207,7 @@ class ProcessingQueue:
             item = QueueItem(url=url, category=category, title=title, channel=channel)
             self._items.append(item)
             self._save()
+            logger.info(f"Added item to queue: {url} (category: {category})")
             return item
 
     def add_multiple(self, urls: List[str], category: Optional[str] = None) -> List[QueueItem]:
