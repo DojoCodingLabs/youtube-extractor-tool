@@ -20,6 +20,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Test script for verification (`test_queue_manager.py`)
   - Programmatic API via `yt_extractor.utils.queue_manager.ProcessingQueue`
 
+- **Enhanced Queue Processing** - Major improvements to batch queue UX
+  - **Rich Progress Visibility**: Uses CLI subprocess (same as single video tab) to show detailed real-time progress
+    - Per-video expandable sections with live progress updates
+    - Detailed stage indicators: metadata → transcript → LLM analysis → markdown generation
+    - Last 10 lines of output shown in detail placeholder
+  - **Auto-start Processing**: Queue automatically begins processing after adding URLs
+    - Seamless workflow from adding to processing
+    - Manual control still available via "Process Queue" button
+  - **Real-time Responsive UI**: Live updates during processing
+    - Modern card-based layout for queue items
+    - Animated status indicators (spinning processing emoji, pulse animations)
+    - Color-coded status badges (Pending/Processing/Completed/Failed)
+    - Timestamps showing when items were added and processed
+    - Expandable error details for failed items
+  - **Enhanced Visual Design**: Professional UI with CSS animations
+    - Hover effects on queue cards
+    - Smooth transitions and animations
+    - Consistent styling across all queue items
+  - Test script for validation (`test_queue_improvements.py`)
+  - Complete implementation summary in `QUEUE_IMPROVEMENTS_SUMMARY.md`
+
 - **PDF Export Feature** - Convert markdown summaries to professionally formatted PDFs
   - New "PDF Export" tab in web UI with drag-and-drop interface
   - Customizable export options (page size, font size, metadata inclusion)

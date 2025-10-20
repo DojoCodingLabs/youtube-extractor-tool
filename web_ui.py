@@ -214,10 +214,146 @@ def main():
         render_pdf_export_tab()
 
 
+def process_video_with_cli(url: str, category: str, progress_placeholder, detail_placeholder, queue, item_id: str):
+    """
+    Process a single video using CLI to capture rich progress output.
+
+    Args:
+        url: YouTube URL
+        category: Category for organization
+        progress_placeholder: Streamlit placeholder for progress indicator
+        detail_placeholder: Streamlit placeholder for detailed output
+        queue: ProcessingQueue instance
+        item_id: Queue item ID for status updates
+
+    Returns:
+        Tuple of (success: bool, output_path: str or None)
+    """
+    cmd = ["python", "-m", "yt_extractor.cli", "process", url, "--output-dir", "./outputs"]
+
+    if category:
+        cmd.extend(["--category", category])
+
+    try:
+        # Update status to processing
+        queue.update_status(item_id, QueueStatus.PROCESSING)
+
+        # Use Popen for real-time output capture
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            universal_newlines=True
+        )
+
+        output_lines = []
+        output_path = None
+
+        # Read output line by line with rich progress updates
+        for line in iter(process.stdout.readline, ''):
+            if line:
+                output_lines.append(line.strip())
+
+                # Update progress based on key indicators
+                if "metadata" in line.lower() or "extracting" in line.lower():
+                    progress_placeholder.info("📋 Extracting video metadata...")
+                elif "transcript" in line.lower() or "downloading" in line.lower():
+                    progress_placeholder.info("📝 Downloading transcript...")
+                elif "llm" in line.lower() or "analyzing" in line.lower():
+                    progress_placeholder.info("🤖 Analyzing with GPT-5 (this may take several minutes)...")
+                elif "generating" in line.lower() or "markdown" in line.lower():
+                    progress_placeholder.info("📄 Generating final report...")
+                elif "saved to:" in line.lower():
+                    progress_placeholder.success("✅ Processing completed!")
+                    # Extract output path
+                    import re
+                    match = re.search(r'Saved to: (.+)', line)
+                    if match:
+                        output_path = match.group(1)
+                elif "failed" in line.lower() or "error" in line.lower():
+                    progress_placeholder.error(f"❌ {line.strip()}")
+
+                # Show last few lines in detail placeholder
+                detail_placeholder.text("\n".join(output_lines[-10:]))
+
+        # Wait for process to complete
+        return_code = process.wait(timeout=600)
+
+        if return_code == 0 and output_path:
+            queue.update_status(item_id, QueueStatus.COMPLETED, output_path=output_path)
+            return True, output_path
+        else:
+            error_msg = "\n".join(output_lines[-5:]) if output_lines else "Unknown error"
+            queue.update_status(item_id, QueueStatus.FAILED, error=error_msg)
+            return False, None
+
+    except subprocess.TimeoutExpired:
+        if 'process' in locals():
+            process.kill()
+        error_msg = "Processing timed out after 10 minutes"
+        queue.update_status(item_id, QueueStatus.FAILED, error=error_msg)
+        progress_placeholder.error(f"⏰ {error_msg}")
+        return False, None
+    except Exception as e:
+        error_msg = f"Unexpected error: {str(e)}"
+        queue.update_status(item_id, QueueStatus.FAILED, error=error_msg)
+        progress_placeholder.error(f"❌ {error_msg}")
+        return False, None
+
+
 def render_batch_queue_tab():
-    """Render the batch queue tab."""
+    """Render the batch queue tab with modern responsive UI."""
     st.header("📋 Batch Video Queue")
     st.markdown("Add multiple YouTube videos to a queue and process them in sequence")
+
+    # Add custom CSS for animations and modern styling
+    st.markdown("""
+    <style>
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .processing-indicator {
+        animation: spin 2s linear infinite;
+        display: inline-block;
+    }
+
+    .queue-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 16px;
+        margin: 8px 0;
+        border-left: 4px solid #2196F3;
+        transition: all 0.3s ease;
+    }
+
+    .queue-card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transform: translateX(2px);
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.85em;
+        font-weight: 600;
+    }
+
+    .status-pending { background: #FFF3E0; color: #F57C00; }
+    .status-processing { background: #E3F2FD; color: #1976D2; animation: pulse 2s ease-in-out infinite; }
+    .status-completed { background: #E8F5E9; color: #388E3C; }
+    .status-failed { background: #FFEBEE; color: #D32F2F; }
+    </style>
+    """, unsafe_allow_html=True)
 
     # Initialize queue
     if "queue" not in st.session_state:
@@ -315,8 +451,9 @@ def render_batch_queue_tab():
             if invalid_count > 0:
                 st.error(f"❌ Skipped {invalid_count} invalid URL(s)")
 
-            # Clear input and refresh
+            # Auto-start processing after adding URLs
             if added_count > 0:
+                st.session_state.auto_start_queue = True
                 st.rerun()
         else:
             st.error("❌ No valid URLs provided")
@@ -331,6 +468,11 @@ def render_batch_queue_tab():
     col3.metric("Processing", stats["processing"])
     col4.metric("Completed", stats["completed"])
     col5.metric("Failed", stats["failed"])
+
+    # Auto-start logic: automatically begin processing after adding URLs
+    if st.session_state.get("auto_start_queue", False) and stats["pending"] > 0:
+        st.session_state.auto_start_queue = False
+        st.session_state.processing = True
 
     # Queue controls
     st.divider()
@@ -355,9 +497,9 @@ def render_batch_queue_tab():
             st.success("Cleared failed items")
             st.rerun()
 
-    # Process queue if requested
+    # Process queue if requested (manual or auto-start)
     if st.session_state.get("processing", False):
-        process_queue_with_updates(queue)
+        process_queue_with_live_updates(queue)
         st.session_state.processing = False
 
     # Display queue
@@ -374,7 +516,7 @@ def render_batch_queue_tab():
 
 
 def render_queue_item(item, queue):
-    """Render a single queue item."""
+    """Render a single queue item with modern card-based UI."""
     # Status emoji
     status_emoji = {
         QueueStatus.PENDING: "⏳",
@@ -383,69 +525,107 @@ def render_queue_item(item, queue):
         QueueStatus.FAILED: "❌",
     }
 
-    # Status color
-    status_color = {
-        QueueStatus.PENDING: "#FFA500",
-        QueueStatus.PROCESSING: "#2196F3",
-        QueueStatus.COMPLETED: "#4CAF50",
-        QueueStatus.FAILED: "#F44336",
+    # Status CSS class mapping
+    status_class = {
+        QueueStatus.PENDING: "status-pending",
+        QueueStatus.PROCESSING: "status-processing",
+        QueueStatus.COMPLETED: "status-completed",
+        QueueStatus.FAILED: "status-failed",
     }
 
+    # Processing indicator with animation
+    if item.status == QueueStatus.PROCESSING:
+        emoji_html = f'<span class="processing-indicator">{status_emoji[item.status]}</span>'
+    else:
+        emoji_html = status_emoji[item.status]
+
+    # Build card HTML
+    card_html = f"""
+    <div class="queue-card">
+        <div style="display: flex; align-items: flex-start; gap: 16px;">
+            <div style="font-size: 2em; line-height: 1;">
+                {emoji_html}
+            </div>
+            <div style="flex: 1;">
+                <div style="margin-bottom: 8px;">
+    """
+
     with st.container():
-        col1, col2, col3, col4 = st.columns([1, 4, 2, 2])
+        # Render card header
+        st.markdown(card_html, unsafe_allow_html=True)
+
+        col1, col2 = st.columns([4, 1])
 
         with col1:
-            st.markdown(f"<h2 style='margin:0'>{status_emoji[item.status]}</h2>", unsafe_allow_html=True)
-
-        with col2:
             if item.title:
                 st.markdown(f"**{item.title}**")
                 if item.channel:
                     st.caption(f"📺 {item.channel}")
             else:
-                st.markdown(f"**{item.url}**")
+                st.markdown(f"`{item.url}`")
 
             if item.category:
-                st.caption(f"📁 {item.category}")
+                st.caption(f"📁 Category: **{item.category}**")
 
+            # Status badge
+            status_badge = f'<span class="status-badge {status_class[item.status]}">{item.status.value.upper()}</span>'
+            st.markdown(status_badge, unsafe_allow_html=True)
+
+            # Show timestamps
+            if item.added_at:
+                from datetime import datetime
+                try:
+                    added_dt = datetime.fromisoformat(item.added_at)
+                    st.caption(f"🕐 Added: {added_dt.strftime('%Y-%m-%d %H:%M')}")
+                except:
+                    pass
+
+            if item.processed_at:
+                from datetime import datetime
+                try:
+                    processed_dt = datetime.fromisoformat(item.processed_at)
+                    st.caption(f"✓ Processed: {processed_dt.strftime('%Y-%m-%d %H:%M')}")
+                except:
+                    pass
+
+            # Show error or output path
             if item.error:
-                st.error(f"Error: {item.error}")
+                with st.expander("❌ Error Details", expanded=False):
+                    st.error(item.error)
             elif item.output_path:
-                st.caption(f"✅ Saved to: {item.output_path}")
+                st.caption(f"💾 Output: `{item.output_path}`")
 
-        with col3:
-            st.markdown(f"<span style='color: {status_color[item.status]}'>{item.status.value.title()}</span>", unsafe_allow_html=True)
-
-        with col4:
+        with col2:
             # Action buttons
             if item.status == QueueStatus.PENDING:
-                col_a, col_b, col_c = st.columns(3)
-                with col_a:
-                    if st.button("🔼", key=f"up_{item.id}", help="Move up"):
-                        queue.move_up(item.id)
-                        st.rerun()
-                with col_b:
-                    if st.button("🔽", key=f"down_{item.id}", help="Move down"):
-                        queue.move_down(item.id)
-                        st.rerun()
-                with col_c:
-                    if st.button("🗑️", key=f"del_{item.id}", help="Remove"):
-                        queue.remove(item.id)
-                        st.rerun()
+                if st.button("⬆️", key=f"up_{item.id}", help="Move up", use_container_width=True):
+                    queue.move_up(item.id)
+                    st.rerun()
+                if st.button("⬇️", key=f"down_{item.id}", help="Move down", use_container_width=True):
+                    queue.move_down(item.id)
+                    st.rerun()
+                if st.button("🗑️", key=f"del_{item.id}", help="Remove", use_container_width=True):
+                    queue.remove(item.id)
+                    st.rerun()
             elif item.status == QueueStatus.FAILED:
-                if st.button("🔄 Retry", key=f"retry_{item.id}"):
+                if st.button("🔄 Retry", key=f"retry_{item.id}", use_container_width=True):
                     queue.update_status(item.id, QueueStatus.PENDING, error=None)
                     st.rerun()
+            elif item.status == QueueStatus.COMPLETED:
+                st.success("Done", icon="✅")
 
-        st.divider()
+        # Close card HTML
+        st.markdown("</div></div></div>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
 
 
-def process_queue_with_updates(queue: ProcessingQueue) -> None:
+def process_queue_with_live_updates(queue: ProcessingQueue) -> None:
     """
-    Process the queue with real-time UI updates.
+    Process the queue with rich real-time UI updates per video.
 
-    Fetches items dynamically to avoid race conditions if queue is modified
-    during processing.
+    Uses CLI subprocess approach (same as single video tab) to capture
+    detailed progress output. Updates UI live during processing with
+    expandable per-video sections.
 
     Args:
         queue: ProcessingQueue instance to process
@@ -458,13 +638,20 @@ def process_queue_with_updates(queue: ProcessingQueue) -> None:
         st.warning("No pending items to process")
         return
 
-    progress_bar = st.progress(0)
-    status_text = st.empty()
+    # Overall progress tracking
+    st.markdown("### 🚀 Processing Queue")
+    overall_progress = st.progress(0)
+    overall_status = st.empty()
+
     processed_count = 0
     failed_count = 0
+    completed_count = 0
 
-    # Initialize extractor
+    # Initialize extractor for metadata
     extractor = YouTubeExtractor()
+
+    # Container for live queue display
+    queue_display = st.container()
 
     # Process items dynamically (fixes race condition)
     while True:
@@ -474,47 +661,70 @@ def process_queue_with_updates(queue: ProcessingQueue) -> None:
 
         processed_count += 1
 
-        try:
-            # Update UI
-            progress = processed_count / initial_pending
-            progress_bar.progress(min(progress, 1.0))
-            status_text.info(f"🔄 Processing {processed_count}/{initial_pending}: {item.url}")
+        # Update overall progress
+        progress = processed_count / initial_pending
+        overall_progress.progress(min(progress, 1.0))
+        overall_status.info(f"📹 Processing video {processed_count} of {initial_pending}")
 
-            # Fetch metadata if not already available
-            if not item.title:
-                try:
-                    meta = extractor.fetch_metadata(item.url)
-                    queue.update_metadata(item.id, title=meta.title, channel=meta.channel)
-                except Exception:
-                    pass  # Continue even if metadata fetch fails
+        # Fetch metadata if not already available
+        if not item.title:
+            try:
+                meta = extractor.fetch_metadata(item.url)
+                queue.update_metadata(item.id, title=meta.title, channel=meta.channel)
+                # Refresh item
+                item = queue.get_by_id(item.id)
+            except Exception:
+                pass  # Continue even if metadata fetch fails
 
-            # Update status to processing
-            queue.update_status(item.id, QueueStatus.PROCESSING)
+        # Create expandable section for this video
+        with queue_display:
+            video_title = item.title or item.url
+            with st.expander(f"🔄 Processing: {video_title}", expanded=True):
+                st.markdown(f"**URL:** {item.url}")
+                if item.category:
+                    st.markdown(f"**Category:** {item.category}")
 
-            # Process the video
-            output_path = extractor.process_video(item.url, output_dir="./outputs", category=item.category)
+                # Progress and detail placeholders
+                progress_placeholder = st.empty()
+                detail_placeholder = st.empty()
 
-            # Update status to completed
-            queue.update_status(item.id, QueueStatus.COMPLETED, output_path=str(output_path))
-            status_text.success(f"✅ Completed {processed_count}/{initial_pending}: {item.url}")
+                # Process using CLI for rich output
+                success, output_path = process_video_with_cli(
+                    url=item.url,
+                    category=item.category,
+                    progress_placeholder=progress_placeholder,
+                    detail_placeholder=detail_placeholder,
+                    queue=queue,
+                    item_id=item.id
+                )
 
-        except Exception as e:
-            # Update status to failed
-            error_msg = str(e)
-            queue.update_status(item.id, QueueStatus.FAILED, error=error_msg)
-            status_text.error(f"❌ Failed {processed_count}/{initial_pending}: {error_msg}")
-            failed_count += 1
+                if success:
+                    completed_count += 1
+                    st.success(f"✅ Completed: {output_path}")
+                else:
+                    failed_count += 1
+                    st.error(f"❌ Failed - check error details above")
 
-        # Brief pause to show status
-        time.sleep(0.5)
+        # Brief pause to show final status before next video
+        time.sleep(1)
+
+        # Update live queue display (refresh the queue list)
+        with queue_display:
+            st.divider()
 
     # Final status
-    progress_bar.progress(1.0)
+    overall_progress.progress(1.0)
 
     if failed_count > 0:
-        status_text.warning(f"⚠️ Completed with {failed_count} failure(s) out of {processed_count} processed")
+        overall_status.warning(
+            f"⚠️ Queue processing complete: {completed_count} succeeded, {failed_count} failed"
+        )
     else:
-        status_text.success(f"🎉 All {processed_count} video(s) processed successfully!")
+        overall_status.success(f"🎉 All {processed_count} video(s) processed successfully!")
+
+    # Force UI refresh to show updated queue
+    time.sleep(2)
+    st.rerun()
 
 
 def render_pdf_export_tab():
