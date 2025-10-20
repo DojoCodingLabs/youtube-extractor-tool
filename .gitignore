@@ -139,6 +139,7 @@ cython_debug/
 notes/
 outputs/
 .cache/
+.processing_state/*.json
 *.tmp
 *.temp
 
