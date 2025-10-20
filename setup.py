@@ -35,6 +35,9 @@ setup(
         "rich>=13.0.0",
         "click>=8.1.0",
         "diskcache>=5.6.0",
+        "weasyprint>=60.0",
+        "markdown2>=2.4.0",
+        "streamlit>=1.28.0",
     ],
     extras_require={
         "whisper": [

@@ -5,8 +5,11 @@ import os
 import glob
 import subprocess
 from pathlib import Path
+from datetime import datetime
 
 import streamlit as st
+
+from yt_extractor.utils.pdf_generator import PDFGenerator
 
 
 def get_existing_categories():
@@ -110,6 +113,79 @@ def get_recent_videos(limit: int = 10):
     return recent
 
 
+def export_markdown_to_pdf(
+    uploaded_file,
+    include_metadata: bool = True,
+    page_size: str = "letter",
+    font_size: int = 11,
+) -> tuple[bool, str, Path | None]:
+    """
+    Export a markdown file to PDF.
+
+    Args:
+        uploaded_file: Streamlit uploaded file object
+        include_metadata: Whether to include metadata section
+        page_size: Page size (letter, a4)
+        font_size: Base font size
+
+    Returns:
+        Tuple of (success, message, pdf_path)
+    """
+    try:
+        # Create temporary directory for PDF exports
+        pdf_dir = Path("outputs/pdf_exports")
+        pdf_dir.mkdir(parents=True, exist_ok=True)
+
+        # Save uploaded file temporarily
+        temp_md_path = pdf_dir / f"temp_{uploaded_file.name}"
+        temp_md_path.write_bytes(uploaded_file.getvalue())
+
+        # Generate PDF filename
+        pdf_filename = temp_md_path.stem + ".pdf"
+        pdf_path = pdf_dir / pdf_filename
+
+        # Generate PDF
+        generator = PDFGenerator()
+        generator.generate_pdf(
+            markdown_path=temp_md_path,
+            output_path=pdf_path,
+            include_metadata=include_metadata,
+            page_size=page_size,
+            font_size=font_size,
+        )
+
+        # Clean up temp markdown file
+        temp_md_path.unlink()
+
+        return True, f"✅ PDF generated successfully: {pdf_filename}", pdf_path
+
+    except Exception as e:
+        return False, f"❌ Error generating PDF: {str(e)}", None
+
+
+def get_recent_pdf_exports(limit: int = 10):
+    """Get recently generated PDFs."""
+    pdf_dir = Path("outputs/pdf_exports")
+    if not pdf_dir.exists():
+        return []
+
+    pdf_files = list(pdf_dir.glob("*.pdf"))
+    # Sort by modification time (most recent first)
+    pdf_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+
+    recent = []
+    for pdf_path in pdf_files[:limit]:
+        stat = pdf_path.stat()
+        recent.append({
+            "filename": pdf_path.name,
+            "path": str(pdf_path),
+            "size": stat.st_size,
+            "modified": datetime.fromtimestamp(stat.st_mtime),
+        })
+
+    return recent
+
+
 def main():
     """Main Streamlit app."""
     st.set_page_config(
@@ -120,6 +196,150 @@ def main():
 
     st.title("🎥 YouTube Video Processor")
     st.markdown("Process YouTube videos and organize them by category")
+
+    # Create tabs
+    tab1, tab2 = st.tabs(["🎥 Process Videos", "📄 PDF Export"])
+
+    with tab1:
+        render_process_tab()
+
+    with tab2:
+        render_pdf_export_tab()
+
+
+def render_pdf_export_tab():
+    """Render the PDF export tab."""
+    st.header("📄 Export Markdown to PDF")
+    st.markdown("Convert your video summaries to professionally formatted PDF documents")
+
+    # File uploader with drag-and-drop
+    uploaded_file = st.file_uploader(
+        "Choose a markdown file",
+        type=["md", "markdown"],
+        help="Drag and drop a .md file here, or click to browse",
+    )
+
+    if uploaded_file is not None:
+        # Show file info
+        st.success(f"📁 File uploaded: **{uploaded_file.name}**")
+
+        # Preview section
+        with st.expander("👁️ Preview Markdown Content", expanded=False):
+            content = uploaded_file.getvalue().decode("utf-8")
+            st.markdown(content[:2000] + ("..." if len(content) > 2000 else ""))
+
+        # Export options
+        st.subheader("⚙️ Export Options")
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            include_metadata = st.checkbox(
+                "Include Metadata Section",
+                value=True,
+                help="Include video title, channel, date, etc. at the top of PDF"
+            )
+
+        with col2:
+            page_size = st.selectbox(
+                "Page Size",
+                options=["Letter", "A4"],
+                help="Select page size for PDF"
+            ).lower()
+
+        with col3:
+            font_size = st.slider(
+                "Font Size",
+                min_value=9,
+                max_value=14,
+                value=11,
+                help="Base font size in points"
+            )
+
+        # Generate button
+        if st.button("🚀 Generate PDF", use_container_width=True, type="primary"):
+            with st.spinner("Generating PDF..."):
+                success, message, pdf_path = export_markdown_to_pdf(
+                    uploaded_file=uploaded_file,
+                    include_metadata=include_metadata,
+                    page_size=page_size,
+                    font_size=font_size,
+                )
+
+                if success:
+                    st.success(message)
+
+                    # Download button
+                    if pdf_path and pdf_path.exists():
+                        with open(pdf_path, "rb") as pdf_file:
+                            st.download_button(
+                                label="⬇️ Download PDF",
+                                data=pdf_file,
+                                file_name=pdf_path.name,
+                                mime="application/pdf",
+                                use_container_width=True,
+                            )
+                else:
+                    st.error(message)
+
+    else:
+        # Show instructions when no file uploaded
+        st.info("👆 Upload a markdown file to get started")
+        st.markdown("""
+        ### 📋 How to use:
+        1. **Upload** a markdown file from your outputs folder
+        2. **Preview** the content (optional)
+        3. **Configure** export options
+        4. **Generate** and download your PDF
+
+        ### ✨ Features:
+        - Professional typography and formatting
+        - Automatic table of contents from headings
+        - Syntax highlighting for code blocks
+        - Page numbers and headers
+        - Optimized for printing
+        """)
+
+    # Divider
+    st.divider()
+
+    # Recent exports section
+    st.subheader("📚 Recent PDF Exports")
+
+    recent_pdfs = get_recent_pdf_exports()
+
+    if not recent_pdfs:
+        st.info("No PDFs generated yet. Export your first markdown file above!")
+    else:
+        for pdf in recent_pdfs:
+            col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
+
+            with col1:
+                st.markdown(f"**{pdf['filename']}**")
+
+            with col2:
+                size_mb = pdf['size'] / (1024 * 1024)
+                st.markdown(f"📊 {size_mb:.2f} MB")
+
+            with col3:
+                time_str = pdf['modified'].strftime("%Y-%m-%d %H:%M")
+                st.markdown(f"🕐 {time_str}")
+
+            with col4:
+                # Download button for existing PDFs
+                pdf_path = Path(pdf['path'])
+                if pdf_path.exists():
+                    with open(pdf_path, "rb") as f:
+                        st.download_button(
+                            label="⬇️",
+                            data=f,
+                            file_name=pdf['filename'],
+                            mime="application/pdf",
+                            key=f"download_{pdf['filename']}",
+                        )
+
+
+def render_process_tab():
+    """Render the video processing tab."""
 
     # Main processing form
     with st.form("process_form"):

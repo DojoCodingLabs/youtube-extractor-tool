@@ -74,8 +74,11 @@ mypy yt_extractor
 # Process single video (outputs to ./outputs/category/)
 python -m yt_extractor.cli process "https://www.youtube.com/watch?v=VIDEO_ID" --output-dir ./outputs --category "AI/Agents"
 
-# Start web UI
+# Start web UI (includes PDF export feature)
 source venv/bin/activate && streamlit run web_ui.py
+
+# Test PDF generation
+python test_pdf_generation.py
 
 # Check configuration
 python -m yt_extractor.cli config check
@@ -128,6 +131,21 @@ Generated markdown follows a standardized format and is saved to `./outputs/$Cat
 - Key Timestamps (navigation references)
 
 Files are organized by category: `./outputs/AI/Agents/video-title.md`
+
+### PDF Export Feature
+The web UI includes a dedicated PDF export feature (`utils/pdf_generator.py`) that converts markdown summaries to professionally styled PDFs:
+- **Drag-and-drop interface**: Upload markdown files directly in the "PDF Export" tab
+- **Professional styling**: Clean typography with system fonts, proper heading hierarchy, and optimized spacing
+- **Customization options**: Choose page size (Letter/A4), font size, and metadata inclusion
+- **WeasyPrint-based**: Uses WeasyPrint for excellent CSS support and quality output
+- **Automatic formatting**: Preserves markdown features like code blocks, tables, and lists
+- **Export management**: View and re-download recent exports from the UI
+
+Generated PDFs include:
+- Styled metadata header with video information
+- Page numbers and headers
+- Professional document formatting optimized for printing
+- Saved to `./outputs/pdf_exports/` directory
 
 ### Error Handling
 Implements exponential backoff retry logic (`utils/retry.py`) with specific handlers for:
