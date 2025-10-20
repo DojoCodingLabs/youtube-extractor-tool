@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Batch Queue System** - Visual queue for processing multiple videos in sequence
+  - New "Batch Queue" tab in web UI for queue management
+  - Add multiple URLs via text input or file upload
+  - Real-time status tracking with color-coded badges (Pending, Processing, Completed, Failed)
+  - Queue operations: reorder items (move up/down), remove items, retry failed items
+  - Persistent queue storage in JSON (`./outputs/.queue/queue.json`)
+  - Statistics dashboard showing total, pending, processing, completed, and failed counts
+  - Progress bar and live status updates during processing
+  - Comprehensive documentation in `docs/BATCH_QUEUE.md`
+  - Test script for verification (`test_queue_manager.py`)
+  - Programmatic API via `yt_extractor.utils.queue_manager.ProcessingQueue`
+
 - **PDF Export Feature** - Convert markdown summaries to professionally formatted PDFs
   - New "PDF Export" tab in web UI with drag-and-drop interface
   - Customizable export options (page size, font size, metadata inclusion)
@@ -18,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Programmatic API via `yt_extractor.utils.pdf_generator.PDFGenerator`
 
 ### Changed
-- Web UI refactored into tabbed interface (Process Videos | PDF Export)
+- Web UI refactored into 3-tab interface (Process Videos | Batch Queue | PDF Export)
 - Updated dependencies to include WeasyPrint, markdown2, and Streamlit
 
 ### Dependencies
@@ -27,10 +39,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `streamlit>=1.28.0` for web UI
 
 ### Documentation
-- Added `docs/PDF_EXPORT.md` - Complete user guide
-- Added `docs/PDF_EXPORT_QUICKSTART.md` - Quick start guide
-- Added `PDF_EXPORT_SUMMARY.md` - Implementation summary
-- Updated `CLAUDE.md` with PDF export architecture notes
+- Added `docs/BATCH_QUEUE.md` - Batch queue user guide and API reference
+- Added `docs/PDF_EXPORT.md` - Complete PDF export user guide
+- Added `docs/PDF_EXPORT_QUICKSTART.md` - PDF export quick start guide
+- Added `PDF_EXPORT_SUMMARY.md` - PDF export implementation summary
+- Updated `CLAUDE.md` with batch queue and PDF export architecture notes
 
 ## [1.0.0] - 2025-XX-XX
 

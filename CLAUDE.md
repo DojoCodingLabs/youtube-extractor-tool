@@ -74,11 +74,14 @@ mypy yt_extractor
 # Process single video (outputs to ./outputs/category/)
 python -m yt_extractor.cli process "https://www.youtube.com/watch?v=VIDEO_ID" --output-dir ./outputs --category "AI/Agents"
 
-# Start web UI (includes PDF export feature)
+# Start web UI (includes batch queue and PDF export features)
 source venv/bin/activate && streamlit run web_ui.py
 
 # Test PDF generation
 python test_pdf_generation.py
+
+# Test queue manager
+python test_queue_manager.py
 
 # Check configuration
 python -m yt_extractor.cli config check
@@ -131,6 +134,22 @@ Generated markdown follows a standardized format and is saved to `./outputs/$Cat
 - Key Timestamps (navigation references)
 
 Files are organized by category: `./outputs/AI/Agents/video-title.md`
+
+### Batch Queue System
+The web UI includes a visual batch processing queue (`utils/queue_manager.py`) for processing multiple videos:
+- **Queue Management**: Add multiple YouTube URLs at once (via text input or file upload)
+- **Visual Tracking**: Real-time status updates with color-coded badges (Pending, Processing, Completed, Failed)
+- **Queue Operations**: Reorder items (move up/down), remove items, retry failed items
+- **Persistent Storage**: Queue state saved to JSON (`./outputs/.queue/queue.json`)
+- **Batch Processing**: Process entire queue with progress bar and live status updates
+- **Category Assignment**: Apply same category to all videos in a batch
+- **Statistics Dashboard**: View counts of total, pending, processing, completed, and failed items
+
+Queue item states:
+- ⏳ **Pending**: Waiting to be processed
+- 🔄 **Processing**: Currently being analyzed
+- ✅ **Completed**: Successfully processed with output path
+- ❌ **Failed**: Processing failed with error message (can be retried)
 
 ### PDF Export Feature
 The web UI includes a dedicated PDF export feature (`utils/pdf_generator.py`) that converts markdown summaries to professionally styled PDFs:

@@ -8,8 +8,12 @@ from pathlib import Path
 from datetime import datetime
 
 import streamlit as st
+import threading
+import time
 
 from yt_extractor.utils.pdf_generator import PDFGenerator
+from yt_extractor.utils.queue_manager import ProcessingQueue, QueueStatus
+from yt_extractor.core.extractor import YouTubeExtractor
 
 
 def get_existing_categories():
@@ -198,13 +202,288 @@ def main():
     st.markdown("Process YouTube videos and organize them by category")
 
     # Create tabs
-    tab1, tab2 = st.tabs(["🎥 Process Videos", "📄 PDF Export"])
+    tab1, tab2, tab3 = st.tabs(["🎥 Process Videos", "📋 Batch Queue", "📄 PDF Export"])
 
     with tab1:
         render_process_tab()
 
     with tab2:
+        render_batch_queue_tab()
+
+    with tab3:
         render_pdf_export_tab()
+
+
+def render_batch_queue_tab():
+    """Render the batch queue tab."""
+    st.header("📋 Batch Video Queue")
+    st.markdown("Add multiple YouTube videos to a queue and process them in sequence")
+
+    # Initialize queue
+    if "queue" not in st.session_state:
+        st.session_state.queue = ProcessingQueue()
+
+    queue = st.session_state.queue
+
+    # Add URLs section
+    st.subheader("➕ Add Videos to Queue")
+
+    col1, col2 = st.columns([3, 1])
+
+    with col1:
+        # Text area for multiple URLs
+        urls_input = st.text_area(
+            "YouTube URLs (one per line)",
+            height=150,
+            placeholder="https://www.youtube.com/watch?v=...\nhttps://www.youtube.com/watch?v=...\nhttps://www.youtube.com/watch?v=...",
+            help="Paste YouTube URLs, one per line. Lines starting with # are ignored."
+        )
+
+        # File uploader for .txt files
+        uploaded_file = st.file_uploader(
+            "Or upload a .txt file with URLs",
+            type=["txt"],
+            help="Upload a text file with one YouTube URL per line"
+        )
+
+    with col2:
+        # Category selection
+        existing_categories = get_existing_categories()
+        if existing_categories:
+            category_option = st.selectbox(
+                "Category",
+                ["Custom..."] + existing_categories,
+                help="Select category for all videos in this batch"
+            )
+            if category_option == "Custom...":
+                category = st.text_input(
+                    "Custom Category",
+                    placeholder="e.g., AI/Agents",
+                    help="Use forward slashes for nested categories"
+                )
+            else:
+                category = category_option
+        else:
+            category = st.text_input(
+                "Category",
+                placeholder="e.g., AI/Agents",
+                help="Use forward slashes for nested categories"
+            )
+
+    # Add to queue button
+    if st.button("➕ Add to Queue", type="primary", use_container_width=True):
+        urls = []
+
+        # Get URLs from text area
+        if urls_input:
+            urls.extend([line.strip() for line in urls_input.split("\n")])
+
+        # Get URLs from uploaded file
+        if uploaded_file:
+            content = uploaded_file.getvalue().decode("utf-8")
+            urls.extend([line.strip() for line in content.split("\n")])
+
+        # Filter and add URLs
+        urls = [url for url in urls if url and not url.startswith("#")]
+
+        if urls:
+            added_count = 0
+            duplicate_count = 0
+
+            for url in urls:
+                try:
+                    queue.add(url, category=category if category else None)
+                    added_count += 1
+                except ValueError:
+                    # Duplicate URL
+                    duplicate_count += 1
+
+            if added_count > 0:
+                st.success(f"✅ Added {added_count} video(s) to queue")
+            if duplicate_count > 0:
+                st.warning(f"⚠️ Skipped {duplicate_count} duplicate URL(s)")
+
+            # Clear input
+            st.rerun()
+        else:
+            st.error("❌ No valid URLs provided")
+
+    # Queue statistics
+    stats = queue.get_stats()
+    st.divider()
+
+    col1, col2, col3, col4, col5 = st.columns(5)
+    col1.metric("Total", stats["total"])
+    col2.metric("Pending", stats["pending"], delta=None)
+    col3.metric("Processing", stats["processing"])
+    col4.metric("Completed", stats["completed"])
+    col5.metric("Failed", stats["failed"])
+
+    # Queue controls
+    st.divider()
+    st.subheader("🎬 Queue Controls")
+
+    col1, col2, col3 = st.columns([2, 2, 2])
+
+    with col1:
+        if st.button("▶️ Process Queue", disabled=stats["pending"] == 0, use_container_width=True):
+            st.session_state.processing = True
+            st.rerun()
+
+    with col2:
+        if st.button("🗑️ Clear Completed", disabled=stats["completed"] == 0, use_container_width=True):
+            queue.clear(status_filter=QueueStatus.COMPLETED)
+            st.success("Cleared completed items")
+            st.rerun()
+
+    with col3:
+        if st.button("🗑️ Clear Failed", disabled=stats["failed"] == 0, use_container_width=True):
+            queue.clear(status_filter=QueueStatus.FAILED)
+            st.success("Cleared failed items")
+            st.rerun()
+
+    # Process queue if requested
+    if st.session_state.get("processing", False):
+        process_queue_with_updates(queue)
+        st.session_state.processing = False
+
+    # Display queue
+    st.divider()
+    st.subheader("📜 Queue Items")
+
+    items = queue.get_all()
+
+    if not items:
+        st.info("👆 Add some YouTube URLs to get started")
+    else:
+        for item in items:
+            render_queue_item(item, queue)
+
+
+def render_queue_item(item, queue):
+    """Render a single queue item."""
+    # Status emoji
+    status_emoji = {
+        QueueStatus.PENDING: "⏳",
+        QueueStatus.PROCESSING: "🔄",
+        QueueStatus.COMPLETED: "✅",
+        QueueStatus.FAILED: "❌",
+    }
+
+    # Status color
+    status_color = {
+        QueueStatus.PENDING: "#FFA500",
+        QueueStatus.PROCESSING: "#2196F3",
+        QueueStatus.COMPLETED: "#4CAF50",
+        QueueStatus.FAILED: "#F44336",
+    }
+
+    with st.container():
+        col1, col2, col3, col4 = st.columns([1, 4, 2, 2])
+
+        with col1:
+            st.markdown(f"<h2 style='margin:0'>{status_emoji[item.status]}</h2>", unsafe_allow_html=True)
+
+        with col2:
+            if item.title:
+                st.markdown(f"**{item.title}**")
+                if item.channel:
+                    st.caption(f"📺 {item.channel}")
+            else:
+                st.markdown(f"**{item.url}**")
+
+            if item.category:
+                st.caption(f"📁 {item.category}")
+
+            if item.error:
+                st.error(f"Error: {item.error}")
+            elif item.output_path:
+                st.caption(f"✅ Saved to: {item.output_path}")
+
+        with col3:
+            st.markdown(f"<span style='color: {status_color[item.status]}'>{item.status.value.title()}</span>", unsafe_allow_html=True)
+
+        with col4:
+            # Action buttons
+            if item.status == QueueStatus.PENDING:
+                col_a, col_b, col_c = st.columns(3)
+                with col_a:
+                    if st.button("🔼", key=f"up_{item.id}", help="Move up"):
+                        queue.move_up(item.id)
+                        st.rerun()
+                with col_b:
+                    if st.button("🔽", key=f"down_{item.id}", help="Move down"):
+                        queue.move_down(item.id)
+                        st.rerun()
+                with col_c:
+                    if st.button("🗑️", key=f"del_{item.id}", help="Remove"):
+                        queue.remove(item.id)
+                        st.rerun()
+            elif item.status == QueueStatus.FAILED:
+                if st.button("🔄 Retry", key=f"retry_{item.id}"):
+                    queue.update_status(item.id, QueueStatus.PENDING, error=None)
+                    st.rerun()
+
+        st.divider()
+
+
+def process_queue_with_updates(queue: ProcessingQueue):
+    """Process the queue with real-time UI updates."""
+    pending_items = queue.get_by_status(QueueStatus.PENDING)
+
+    if not pending_items:
+        st.warning("No pending items to process")
+        return
+
+    total = len(pending_items)
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+
+    # Initialize extractor
+    extractor = YouTubeExtractor()
+
+    for i, item in enumerate(pending_items, 1):
+        try:
+            # Update UI
+            progress = i / total
+            progress_bar.progress(progress)
+            status_text.info(f"🔄 Processing {i}/{total}: {item.url}")
+
+            # Fetch metadata if not already available
+            if not item.title:
+                try:
+                    meta = extractor.fetch_metadata(item.url)
+                    queue.update_metadata(item.id, title=meta.title, channel=meta.channel)
+                except Exception:
+                    pass  # Continue even if metadata fetch fails
+
+            # Update status to processing
+            queue.update_status(item.id, QueueStatus.PROCESSING)
+
+            # Process the video
+            output_path = extractor.process_video(item.url, output_dir="./outputs", category=item.category)
+
+            # Update status to completed
+            queue.update_status(item.id, QueueStatus.COMPLETED, output_path=str(output_path))
+            status_text.success(f"✅ Completed {i}/{total}: {item.url}")
+
+        except Exception as e:
+            # Update status to failed
+            error_msg = str(e)
+            queue.update_status(item.id, QueueStatus.FAILED, error=error_msg)
+            status_text.error(f"❌ Failed {i}/{total}: {error_msg}")
+
+        # Brief pause to show status
+        time.sleep(0.5)
+
+    # Final status
+    stats = queue.get_stats()
+    progress_bar.progress(1.0)
+
+    if stats["failed"] > 0:
+        status_text.warning(f"⚠️ Completed with {stats['failed']} failure(s)")
+    else:
+        status_text.success(f"🎉 All {total} video(s) processed successfully!")
 
 
 def render_pdf_export_tab():
