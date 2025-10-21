@@ -63,17 +63,17 @@ def process_video(url: str, category: str = None):
 
                 # Update progress based on key indicators
                 if "metadata" in line.lower():
-                    progress_placeholder.info("📋 Extracting video metadata...")
+                    progress_placeholder.info("🔍 **Analyzing video details...** Fetching title, duration, and channel info")
                 elif "transcript" in line.lower():
-                    progress_placeholder.info("📝 Downloading transcript...")
+                    progress_placeholder.info("📝 **Extracting transcript...** Downloading full video captions")
                 elif "llm_processing" in line.lower():
-                    progress_placeholder.info("🤖 Analyzing with GPT-5 (this may take several minutes)...")
+                    progress_placeholder.info("🧠 **AI is analyzing content...** GPT-5 is extracting insights (2-5 minutes)")
                 elif "analyzing full transcript" in line.lower():
-                    progress_placeholder.info("🧠 GPT-5 analyzing video content...")
+                    progress_placeholder.info("💡 **Deep analysis in progress...** Identifying key insights and frameworks")
                 elif "generating markdown" in line.lower():
-                    progress_placeholder.info("📄 Generating final report...")
+                    progress_placeholder.info("📄 **Creating your report...** Formatting insights into structured document")
                 elif "saved to:" in line.lower():
-                    progress_placeholder.success("✅ Processing completed!")
+                    progress_placeholder.success("🎉 **Insights extracted successfully!** Your report is ready")
                 elif "failed" in line.lower() or "error" in line.lower():
                     progress_placeholder.error(f"❌ {line.strip()}")
 
@@ -193,16 +193,43 @@ def get_recent_pdf_exports(limit: int = 10):
 def main():
     """Main Streamlit app."""
     st.set_page_config(
-        page_title="YouTube Video Processor",
-        page_icon="🎥",
-        layout="wide"
+        page_title="YouTube Value Extractor - AI-Powered Insights",
+        page_icon="⚡",
+        layout="wide",
+        initial_sidebar_state="collapsed"
     )
 
-    st.title("🎥 YouTube Video Processor")
-    st.markdown("Process YouTube videos and organize them by category")
+    # Hero Section
+    st.markdown("""
+    <div style="text-align: center; padding: 2rem 0 1rem 0;">
+        <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem;">
+            ⚡ YouTube Value Extractor
+        </h1>
+        <p style="font-size: 1.3rem; color: #666; margin-bottom: 1rem;">
+            Turn YouTube Videos Into Actionable Insights
+        </p>
+        <p style="font-size: 1rem; color: #888; max-width: 700px; margin: 0 auto 1.5rem auto;">
+            AI-powered analysis that extracts key insights, frameworks, and strategies from any video.
+            Get publication-grade summaries in minutes, not hours.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Benefits badges
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.markdown("**✨ Full-Context Analysis**<br/>Understands entire videos", unsafe_allow_html=True)
+    with col2:
+        st.markdown("**🎯 Actionable Frameworks**<br/>Step-by-step guides", unsafe_allow_html=True)
+    with col3:
+        st.markdown("**📊 Structured Insights**<br/>Organized format", unsafe_allow_html=True)
+    with col4:
+        st.markdown("**⚡ Fast Processing**<br/>Results in 2-5 min", unsafe_allow_html=True)
+
+    st.markdown("<br/>", unsafe_allow_html=True)
 
     # Create tabs
-    tab1, tab2, tab3 = st.tabs(["🎥 Process Videos", "📋 Batch Queue", "📄 PDF Export"])
+    tab1, tab2, tab3 = st.tabs(["⚡ Extract Insights", "📚 Batch Processing", "📄 Export to PDF"])
 
     with tab1:
         render_process_tab()
@@ -212,6 +239,34 @@ def main():
 
     with tab3:
         render_pdf_export_tab()
+
+    # Professional footer
+    st.markdown("<br/><br/>", unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("""
+    <div style="text-align: center; color: #888; padding: 1rem 0;">
+        <p style="margin: 0.5rem 0;">
+            <strong>⚡ YouTube Value Extractor</strong> — Powered by GPT-5
+        </p>
+        <p style="margin: 0.5rem 0; font-size: 0.9rem;">
+            Transform hours of video into actionable insights in minutes
+        </p>
+        <p style="margin: 0.5rem 0; font-size: 0.85rem;">
+            <a href="https://github.com/yourusername/youtube-extractor-tool" target="_blank" style="color: #1E88E5; text-decoration: none;">
+                Documentation
+            </a> •
+            <a href="https://github.com/yourusername/youtube-extractor-tool/issues" target="_blank" style="color: #1E88E5; text-decoration: none;">
+                Report Issue
+            </a> •
+            <a href="https://github.com/yourusername/youtube-extractor-tool" target="_blank" style="color: #1E88E5; text-decoration: none;">
+                GitHub
+            </a>
+        </p>
+        <p style="margin: 0.5rem 0; font-size: 0.8rem; color: #aaa;">
+            Built with ❤️ using Streamlit & LiteLLM • Version 1.0
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 def process_video_with_cli(url: str, category: str, progress_placeholder, detail_placeholder, queue, item_id: str):
@@ -258,15 +313,15 @@ def process_video_with_cli(url: str, category: str, progress_placeholder, detail
 
                 # Update progress based on key indicators
                 if "metadata" in line.lower() or "extracting" in line.lower():
-                    progress_placeholder.info("📋 Extracting video metadata...")
+                    progress_placeholder.info("🔍 **Analyzing video details...** Fetching title, duration, and channel info")
                 elif "transcript" in line.lower() or "downloading" in line.lower():
-                    progress_placeholder.info("📝 Downloading transcript...")
+                    progress_placeholder.info("📝 **Extracting transcript...** Downloading full video captions")
                 elif "llm" in line.lower() or "analyzing" in line.lower():
-                    progress_placeholder.info("🤖 Analyzing with GPT-5 (this may take several minutes)...")
+                    progress_placeholder.info("🧠 **AI is analyzing content...** GPT-5 is extracting insights (2-5 minutes)")
                 elif "generating" in line.lower() or "markdown" in line.lower():
-                    progress_placeholder.info("📄 Generating final report...")
+                    progress_placeholder.info("📄 **Creating your report...** Formatting insights into structured document")
                 elif "saved to:" in line.lower():
-                    progress_placeholder.success("✅ Processing completed!")
+                    progress_placeholder.success("🎉 **Insights extracted successfully!** Your report is ready")
                     # Extract output path
                     import re
                     match = re.search(r'Saved to: (.+)', line)
@@ -305,12 +360,13 @@ def process_video_with_cli(url: str, category: str, progress_placeholder, detail
 
 def render_batch_queue_tab():
     """Render the batch queue tab with modern responsive UI."""
-    st.header("📋 Batch Video Queue")
-    st.markdown("Add multiple YouTube videos to a queue and process them in sequence")
+    st.header("📚 Batch Process Multiple Videos")
+    st.markdown("Queue up videos and extract insights from entire playlists or series. Perfect for learning from multiple sources or processing content libraries.")
 
     # Add custom CSS for animations and modern styling
     st.markdown("""
     <style>
+    /* Animations */
     @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
@@ -318,7 +374,12 @@ def render_batch_queue_tab():
 
     @keyframes pulse {
         0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
+        50% { opacity: 0.6; }
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
     .processing-indicator {
@@ -326,32 +387,77 @@ def render_batch_queue_tab():
         display: inline-block;
     }
 
+    /* Modern card design */
     .queue-card {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 16px;
-        margin: 8px 0;
-        border-left: 4px solid #2196F3;
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        margin: 12px 0;
+        border-left: 4px solid #1E88E5;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         transition: all 0.3s ease;
+        animation: fadeIn 0.3s ease-out;
     }
 
     .queue-card:hover {
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        transform: translateX(2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        transform: translateX(4px);
+        border-left-color: #1565C0;
     }
 
+    /* Enhanced status badges */
     .status-badge {
         display: inline-block;
-        padding: 4px 12px;
-        border-radius: 12px;
+        padding: 6px 14px;
+        border-radius: 16px;
         font-size: 0.85em;
         font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
     }
 
-    .status-pending { background: #FFF3E0; color: #F57C00; }
-    .status-processing { background: #E3F2FD; color: #1976D2; animation: pulse 2s ease-in-out infinite; }
-    .status-completed { background: #E8F5E9; color: #388E3C; }
-    .status-failed { background: #FFEBEE; color: #D32F2F; }
+    .status-pending {
+        background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+        color: #E65100;
+        border: 1px solid #FFB74D;
+    }
+
+    .status-processing {
+        background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+        color: #0D47A1;
+        animation: pulse 2s ease-in-out infinite;
+        border: 1px solid #64B5F6;
+    }
+
+    .status-completed {
+        background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+        color: #1B5E20;
+        border: 1px solid #81C784;
+    }
+
+    .status-failed {
+        background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+        color: #B71C1C;
+        border: 1px solid #E57373;
+    }
+
+    /* Better spacing and typography */
+    .stMarkdown h1 {
+        font-weight: 700;
+        letter-spacing: -0.5px;
+    }
+
+    .stMarkdown h2 {
+        font-weight: 600;
+        margin-top: 2rem;
+        color: #1E88E5;
+    }
+
+    /* Info boxes */
+    .stAlert {
+        border-radius: 8px;
+        border-left-width: 4px;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -509,7 +615,7 @@ def render_batch_queue_tab():
     items = queue.get_all()
 
     if not items:
-        st.info("👆 Add some YouTube URLs to get started")
+        st.info("📚 **Ready to batch process?** Add YouTube URLs above to queue multiple videos for extraction.")
     else:
         for item in items:
             render_queue_item(item, queue)
@@ -729,8 +835,8 @@ def process_queue_with_live_updates(queue: ProcessingQueue) -> None:
 
 def render_pdf_export_tab():
     """Render the PDF export tab."""
-    st.header("📄 Export Markdown to PDF")
-    st.markdown("Convert your video summaries to professionally formatted PDF documents")
+    st.header("📄 Create Professional PDF Reports")
+    st.markdown("Convert your insights into shareable, print-ready PDF documents. Perfect for sharing knowledge, creating study guides, or archiving research.")
 
     # File uploader with drag-and-drop
     uploaded_file = st.file_uploader(
@@ -803,21 +909,23 @@ def render_pdf_export_tab():
 
     else:
         # Show instructions when no file uploaded
-        st.info("👆 Upload a markdown file to get started")
-        st.markdown("""
-        ### 📋 How to use:
-        1. **Upload** a markdown file from your outputs folder
-        2. **Preview** the content (optional)
-        3. **Configure** export options
-        4. **Generate** and download your PDF
+        st.info("📄 **Ready to create a PDF?** Upload a markdown insight file above to transform it into a professional document.")
 
-        ### ✨ Features:
-        - Professional typography and formatting
-        - Automatic table of contents from headings
-        - Syntax highlighting for code blocks
-        - Page numbers and headers
-        - Optimized for printing
-        """)
+        with st.expander("📋 How It Works", expanded=False):
+            st.markdown("""
+            ### Simple 4-Step Process:
+            1. **Upload** - Choose a markdown file from your `outputs/` folder
+            2. **Preview** - Review the content before converting (optional)
+            3. **Configure** - Adjust page size, font, and metadata options
+            4. **Generate** - Create and download your professional PDF
+
+            ### ✨ What You Get:
+            - 📖 Professional typography and layout
+            - 📑 Automatic table of contents
+            - 🎨 Syntax highlighting for code
+            - 📄 Page numbers and headers
+            - 🖨️ Print-optimized formatting
+            """)
 
     # Divider
     st.divider()
@@ -828,7 +936,7 @@ def render_pdf_export_tab():
     recent_pdfs = get_recent_pdf_exports()
 
     if not recent_pdfs:
-        st.info("No PDFs generated yet. Export your first markdown file above!")
+        st.info("📄 **No PDFs yet.** Upload a markdown file above to create your first professional report.")
     else:
         for pdf in recent_pdfs:
             col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
@@ -861,15 +969,37 @@ def render_pdf_export_tab():
 def render_process_tab():
     """Render the video processing tab."""
 
+    # Tab header
+    st.markdown("""
+    <div style="margin-bottom: 1.5rem;">
+        <h2 style="color: #1E88E5; margin-bottom: 0.5rem;">⚡ Extract Insights from Any Video</h2>
+        <p style="color: #666; font-size: 1.1rem;">
+            Paste a YouTube URL below and get comprehensive insights in minutes. Perfect for:
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.markdown("📚 **Learning**<br/>Educational content", unsafe_allow_html=True)
+    with col2:
+        st.markdown("💼 **Business**<br/>Strategies & frameworks", unsafe_allow_html=True)
+    with col3:
+        st.markdown("🎯 **Research**<br/>Key methodologies", unsafe_allow_html=True)
+    with col4:
+        st.markdown("🧠 **Knowledge**<br/>Save hours of watching", unsafe_allow_html=True)
+
+    st.markdown("<br/>", unsafe_allow_html=True)
+
     # Main processing form
     with st.form("process_form"):
         col1, col2 = st.columns([2, 1])
 
         with col1:
             url = st.text_input(
-                "YouTube URL",
-                placeholder="https://www.youtube.com/watch?v=...",
-                help="Paste the full YouTube URL here"
+                "YouTube Video URL",
+                placeholder="Paste your YouTube video URL here...",
+                help="Works with any YouTube video that has captions available"
             )
 
         with col2:
@@ -897,7 +1027,7 @@ def render_process_tab():
                     help="Use forward slashes for nested categories"
                 )
 
-        submitted = st.form_submit_button("🚀 Process Video", use_container_width=True)
+        submitted = st.form_submit_button("⚡ Extract Insights", use_container_width=True, type="primary")
 
     if submitted:
         if not url:
@@ -907,38 +1037,42 @@ def render_process_tab():
             status_container = st.container()
 
             with status_container:
-                st.info("🚀 Starting video processing...")
+                st.info("🚀 **Starting extraction...** This will take 2-5 minutes depending on video length")
 
                 # Process video with real-time updates
                 success, output = process_video(url, category)
 
                 if success:
-                    st.success("🎉 Video processed successfully!")
+                    st.success("🎉 **Insights Extracted Successfully!**")
 
                     # Extract file path from output
                     import re
                     saved_to_match = re.search(r'✅ Saved to: (.+)', output)
                     if saved_to_match:
                         file_path = saved_to_match.group(1)
-                        st.info(f"📄 **File saved to:** `{file_path}`")
+                        st.info(f"📄 **Your report is ready:** `{file_path}`")
 
                         # Add a button to refresh the recent videos list
                         if st.button("🔄 Refresh Recent Videos"):
                             st.rerun()
                     elif category:
-                        st.info(f"📁 **Saved to category:** `./outputs/{category}/`")
+                        st.info(f"📁 **Saved to:** `./outputs/{category}/`")
                     else:
                         st.info(f"📁 **Saved to:** `./outputs/`")
 
                     # Show enhanced success info
-                    st.markdown("### ✨ What happened:")
-                    st.markdown("""
-                    1. 📋 **Metadata extracted** - Video title, duration, and channel info
-                    2. 📝 **Transcript downloaded** - Full video transcript obtained
-                    3. 🤖 **GPT-5 analysis** - AI analyzed the entire transcript for insights
-                    4. 📄 **Report generated** - Comprehensive markdown report created
-                    5. 💾 **File saved** - Report saved to your specified category folder
-                    """)
+                    with st.expander("✨ What We Extracted", expanded=True):
+                        st.markdown("""
+                        **Your comprehensive analysis includes:**
+
+                        - 📋 **Executive Summary** - Key takeaways in 2-3 paragraphs
+                        - 💡 **Detailed Insights** - Comprehensive analysis with context
+                        - 🎯 **Actionable Frameworks** - Step-by-step implementation guides
+                        - ⏱️ **Key Timestamps** - Quick navigation to important moments
+                        - 📊 **Structured Format** - Clean, scannable markdown document
+
+                        All ready to read, share, or export to PDF!
+                        """)
 
                     # Show output in expandable section
                     with st.expander("📋 View Detailed Processing Log"):
@@ -972,7 +1106,7 @@ def render_process_tab():
     recent_videos = get_recent_videos()
 
     if not recent_videos:
-        st.info("No videos processed yet. Process your first video above!")
+        st.info("👋 **Ready to extract your first insight?** Paste a YouTube URL above to get started.")
     else:
         for video in recent_videos:
             with st.container():
@@ -997,25 +1131,32 @@ def render_process_tab():
                         except Exception as e:
                             st.error(f"Error reading file: {e}")
 
-    # Footer
+    # Tips section
     st.markdown("---")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("💡 **Tip**: Use categories like `AI/Agents`, `Business/Marketing`, or `Crypto/DeFi` to organize your videos")
-    with col2:
-        st.markdown("📁 **Files saved to**: `./outputs/$Category/` directory")
+    with st.expander("💡 Pro Tips & Processing Info", expanded=False):
+        st.markdown("""
+        ### 📁 Organization Tips
+        - Use clear category names like `AI/Agents`, `Business/Marketing`, or `Learning/Productivity`
+        - Forward slashes create nested folders (e.g., `AI/Agents` → `outputs/AI/Agents/`)
+        - Files are automatically named based on video title and upload date
 
-    # Processing info
-    st.markdown("---")
-    st.markdown("### ⏱️ Processing Times with GPT-5:")
-    st.markdown("""
-    - **Short videos** (< 5 min): ~30-60 seconds
-    - **Medium videos** (5-20 min): ~2-3 minutes
-    - **Long videos** (20+ min): ~3-5 minutes
-    - **Very long videos** (45+ min): ~5-10 minutes
+        ### ⏱️ Processing Times
+        Processing time depends on video length and GPT-5 availability:
+        - **Short videos** (< 5 min): ~30-60 seconds
+        - **Medium videos** (5-20 min): ~2-3 minutes
+        - **Long videos** (20-45 min): ~3-5 minutes
+        - **Very long videos** (45+ min): ~5-10 minutes
 
-    💰 **Note**: GPT-5 provides significantly higher quality analysis than GPT-4o-mini but takes longer and costs more per request.
-    """)
+        ### 🎯 Best Practices
+        - Videos with accurate captions work best
+        - Longer videos provide more comprehensive insights
+        - Use batch processing for multiple videos from same topic
+        - Export to PDF for easy sharing and archiving
+
+        ### 💰 Model Info
+        **GPT-5** provides publication-grade analysis with deep contextual understanding.
+        Higher quality than GPT-4o-mini but takes longer and costs more per request.
+        """)
 
 
 if __name__ == "__main__":
