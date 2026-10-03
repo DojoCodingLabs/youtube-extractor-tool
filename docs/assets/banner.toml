@@ -1,0 +1,12 @@
+name = "YouTube Value Extractor"
+tagline = "Turn YouTube videos into [markdown reports]"
+chips = ["CLI / Web UI / Batch"]
+meta = "Open source · Python"
+tile = ">_"
+
+[card]
+kind = "terminal"
+label = "Python"
+status = "v1.0.0 · MIT"
+lines = ["pip install -e .", ["python -m yt_extractor.cli process", "URL"], "streamlit run web_ui.py"]
+dim = "summary · insights · frameworks"

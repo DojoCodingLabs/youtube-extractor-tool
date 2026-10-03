@@ -1,8 +1,24 @@
+<p align="center">
+  <a href="https://dojocoding.io">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="docs/assets/banner-light.svg">
+      <img alt="YouTube Value Extractor by Dojo Coding: Turn YouTube videos into markdown reports" src="docs/assets/banner-light.svg" width="100%">
+    </picture>
+  </a>
+</p>
+
 # YouTube Value Extractor
+
+**A Python CLI and web UI that turn YouTube videos into structured markdown reports, for builders who learn from video.**
 
 A powerful tool for extracting actionable insights from YouTube videos. Transform video content into comprehensive, structured markdown reports with detailed insights, actionable frameworks, and key moments - designed to maximize value and understanding from any video content.
 
-## ✨ Features
+[![License: MIT](https://img.shields.io/badge/license-MIT-FF7151?labelColor=201E3D)](LICENSE) [![Version 1.0.0](https://img.shields.io/badge/version-1.0.0-FF7151?labelColor=201E3D)](CHANGELOG.md) [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-201E3D?labelColor=201E3D)](https://www.python.org)
+
+[Get started](#quick-start) · [CLI commands](#cli-commands) · [Docs](#documentation) · [Contribute](#contributing) · [Report an issue](https://github.com/DojoCodingLabs/youtube-extractor-tool/issues/new)
+
+## Features
 
 - **🧠 Full-Context Analysis**: Processes entire video transcripts at once for comprehensive understanding and insights
 - **📝 Structured Insights**: Generates detailed paragraphs (not bullet points) with context, examples, and actionable details
@@ -16,7 +32,7 @@ A powerful tool for extracting actionable insights from YouTube videos. Transfor
 - **🛠 Rich CLI**: Full-featured command-line interface with progress indicators
 - **📊 Batch Processing**: Process multiple videos efficiently
 
-## 🚀 Quick Start
+## Quick Start
 
 **New to the tool?** See [QUICKSTART.md](QUICKSTART.md) for a 5-minute setup guide.
 
@@ -88,7 +104,7 @@ python -m yt_extractor.cli config check
 python -m yt_extractor.cli info "https://www.youtube.com/watch?v=VIDEO_ID"
 ```
 
-## 📋 CLI Commands
+## CLI Commands
 
 ### Main Commands
 
@@ -114,7 +130,7 @@ python -m yt_extractor.cli info "https://www.youtube.com/watch?v=VIDEO_ID"
 - `--verbose, -v` - Enable verbose output
 - `--concurrent, -c` - Set concurrent processing limit
 
-## 📖 Output Format
+## Output Format
 
 The tool generates comprehensive markdown files with this structure:
 
@@ -167,7 +183,7 @@ Important moments for easy navigation:
 - **[t=18:20]** Critical implementation detail or example
 ```
 
-## ⚙️ Configuration Options
+## Configuration Options
 
 ### Environment Variables
 
@@ -190,7 +206,7 @@ Important moments for easy navigation:
 | `WHISPER_DEVICE` | Device (auto/cuda/cpu) | `auto` |
 | `WHISPER_COMPUTE_TYPE` | Compute precision | `float16` |
 
-## 🔧 Advanced Features
+## Advanced Features
 
 ### Caching
 
@@ -235,7 +251,7 @@ Then process them all:
 python -m yt_extractor.cli batch videos.txt --concurrent 3
 ```
 
-## 🧪 Development
+## Development
 
 ### Running Tests
 
@@ -284,7 +300,7 @@ yt_extractor/
 └── cli.py                 # Command-line interface
 ```
 
-## 📖 Documentation
+## Documentation
 
 This repository includes comprehensive documentation:
 
@@ -294,11 +310,7 @@ This repository includes comprehensive documentation:
 - **[CLAUDE.md](CLAUDE.md)** - Architecture guide for development with Claude Code
 - **[TESTING.md](TESTING.md)** - Testing guide and procedures
 
-## 📝 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -306,14 +318,22 @@ MIT License - see [LICENSE](LICENSE) file for details.
 4. Ensure all tests pass
 5. Submit a pull request
 
-## 📞 Support
+## Support
 
 - Create an [issue](https://github.com/yourusername/youtube-extractor-tool/issues) for bugs or feature requests
 - Check existing issues before creating new ones
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp) for robust YouTube metadata extraction
 - [youtube-transcript-api](https://github.com/jdepoix/youtube-transcript-api) for transcript fetching
 - [LiteLLM](https://github.com/BerriAI/litellm) for unified LLM API access
 - [Rich](https://github.com/Textualize/rich) for beautiful terminal output
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details. Built by [Dojo Coding](https://dojocoding.io).
+
+<p align="center">
+  <a href="https://dojocoding.io"><img src="docs/assets/dojocoding-mark.png" alt="Dojo Coding" width="48"></a>
+</p>
